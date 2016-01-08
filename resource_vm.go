@@ -133,14 +133,23 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	d.Set(vmSchemaNameLabel, vmRecord.NameLabel)
+	err = d.Set(vmSchemaNameLabel, vmRecord.NameLabel)
+	if err != nil {
+		return err
+	}
 
 	vmBaseTemplateName, ok := vmRecord.OtherConfig["base_template_name"]
 	if ok {
-		d.Set(vmSchemaBaseTemplateName, vmBaseTemplateName)
+		err = d.Set(vmSchemaBaseTemplateName, vmBaseTemplateName)
+		if err != nil {
+			return err
+		}
 	}
 
-	d.Set(vmSchemaXenstoreData, vmRecord.XenstoreData)
+	err = d.Set(vmSchemaXenstoreData, vmRecord.XenstoreData)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
