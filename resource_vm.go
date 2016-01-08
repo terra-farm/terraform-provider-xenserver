@@ -221,6 +221,18 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	powerState, err := c.client.VM().GetPowerState(c.session, xenVM)
+	if err != nil {
+		return err
+	}
+
+	if powerState == xenAPI.VMPowerStateRunning {
+		err = c.client.VM().HardShutdown(c.session, xenVM)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = c.client.VM().Destroy(c.session, xenVM)
 	if err != nil {
 		return err
