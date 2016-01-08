@@ -45,7 +45,7 @@ func resourceVM() *schema.Resource {
 func filterVMTemplates(c *Connection, vms []xenAPI.VMRef) ([]xenAPI.VMRef, error) {
 	var templates []xenAPI.VMRef
 	for _, vm := range vms {
-		isATemplate, err := c.client.VM().GetIsATemplate(c.session, vm)
+		isATemplate, err := c.client.VM.GetIsATemplate(c.session, vm)
 		if err != nil {
 			return templates, err
 		}
@@ -61,7 +61,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 
 	dBaseTemplateName := d.Get(vmSchemaBaseTemplateName).(string)
 
-	xenBaseTemplates, err := c.client.VM().GetByNameLabel(c.session, dBaseTemplateName)
+	xenBaseTemplates, err := c.client.VM.GetByNameLabel(c.session, dBaseTemplateName)
 	if err != nil {
 		return err
 	}
@@ -83,12 +83,12 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 
 	dNameLabel := d.Get(vmSchemaNameLabel).(string)
 
-	xenVM, err := c.client.VM().Clone(c.session, xenBaseTemplate, dNameLabel)
+	xenVM, err := c.client.VM.Clone(c.session, xenBaseTemplate, dNameLabel)
 	if err != nil {
 		return err
 	}
 
-	xenUUID, err := c.client.VM().GetUUID(c.session, xenVM)
+	xenUUID, err := c.client.VM.GetUUID(c.session, xenVM)
 	if err != nil {
 		return err
 	}
@@ -102,13 +102,13 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
 		}
 
-		err = c.client.VM().SetXenstoreData(c.session, xenVM, dXenstoreData)
+		err = c.client.VM.SetXenstoreData(c.session, xenVM, dXenstoreData)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = c.client.VM().Provision(c.session, xenVM)
+	err = c.client.VM.Provision(c.session, xenVM)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
-	xenVM, err := c.client.VM().GetByUUID(c.session, d.Id())
+	xenVM, err := c.client.VM.GetByUUID(c.session, d.Id())
 	if err != nil {
 		if xenErr, ok := err.(*xenAPI.Error); ok {
 			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
@@ -131,7 +131,7 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vmRecord, err := c.client.VM().GetRecord(c.session, xenVM)
+	vmRecord, err := c.client.VM.GetRecord(c.session, xenVM)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
-	xenVM, err := c.client.VM().GetByUUID(c.session, d.Id())
+	xenVM, err := c.client.VM.GetByUUID(c.session, d.Id())
 	if err != nil {
 		if xenErr, ok := err.(*xenAPI.Error); ok {
 			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
@@ -179,7 +179,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vmRecord, err := c.client.VM().GetRecord(c.session, xenVM)
+	vmRecord, err := c.client.VM.GetRecord(c.session, xenVM)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 
 	dNameLabel := d.Get(vmSchemaNameLabel).(string)
 	if vmRecord.NameLabel != dNameLabel {
-		err := c.client.VM().SetNameLabel(c.session, xenVM, dNameLabel)
+		err := c.client.VM.SetNameLabel(c.session, xenVM, dNameLabel)
 		if err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
 		}
 
-		err = c.client.VM().SetXenstoreData(c.session, xenVM, dXenstoreData)
+		err = c.client.VM.SetXenstoreData(c.session, xenVM, dXenstoreData)
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
-	xenVM, err := c.client.VM().GetByUUID(c.session, d.Id())
+	xenVM, err := c.client.VM.GetByUUID(c.session, d.Id())
 	if err != nil {
 		if xenErr, ok := err.(*xenAPI.Error); ok {
 			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
@@ -231,19 +231,19 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	powerState, err := c.client.VM().GetPowerState(c.session, xenVM)
+	powerState, err := c.client.VM.GetPowerState(c.session, xenVM)
 	if err != nil {
 		return err
 	}
 
 	if powerState == xenAPI.VMPowerStateRunning {
-		err = c.client.VM().HardShutdown(c.session, xenVM)
+		err = c.client.VM.HardShutdown(c.session, xenVM)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = c.client.VM().Destroy(c.session, xenVM)
+	err = c.client.VM.Destroy(c.session, xenVM)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 func resourceVMExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	c := m.(*Connection)
 
-	_, err := c.client.VM().GetByUUID(c.session, d.Id())
+	_, err := c.client.VM.GetByUUID(c.session, d.Id())
 	if err != nil {
 		if xenErr, ok := err.(*xenAPI.Error); ok {
 			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {

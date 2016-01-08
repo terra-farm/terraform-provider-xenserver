@@ -19,9 +19,12 @@ type Connection struct {
 
 // NewConnection ...
 func (cfg *Config) NewConnection() (*Connection, error) {
-	client := xenAPI.NewClient(cfg.URL)
+	client, err := xenAPI.NewClient(cfg.URL, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	session, err := client.Session().LoginWithPassword(cfg.Username, cfg.Password, "1.0", "terraform")
+	session, err := client.Session.LoginWithPassword(cfg.Username, cfg.Password, "1.0", "terraform")
 	if err != nil {
 		return nil, err
 	}
