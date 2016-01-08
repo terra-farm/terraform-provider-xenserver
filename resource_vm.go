@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/amfranz/go-xen-api-client"
 	"github.com/hashicorp/terraform/helper/schema"
+	"strings"
 )
 
 const (
@@ -11,6 +12,8 @@ const (
 	vmSchemaBaseTemplateName = "base_template_name"
 	vmSchemaXenstoreData     = "xenstore_data"
 )
+
+const xenstoreVMDataPrefix = "vm-data/"
 
 func resourceVM() *schema.Resource {
 	return &schema.Resource{
@@ -96,7 +99,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	if ok {
 		dXenstoreData := make(map[string]string)
 		for key, value := range dXenstoreDataRaw.(map[string]interface{}) {
-			dXenstoreData[key] = value.(string)
+			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
 		}
 
 		err = c.client.VM().SetXenstoreData(c.session, xenVM, dXenstoreData)
@@ -146,7 +149,14 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
-	err = d.Set(vmSchemaXenstoreData, vmRecord.XenstoreData)
+	vmXenstoreData := make(map[string]string)
+	for key, value := range vmRecord.XenstoreData {
+		if strings.HasPrefix(key, xenstoreVMDataPrefix) {
+			vmXenstoreData[key[len(xenstoreVMDataPrefix):]] = value
+		}
+	}
+
+	err = d.Set(vmSchemaXenstoreData, vmXenstoreData)
 	if err != nil {
 		return err
 	}
@@ -190,7 +200,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 	if ok {
 		dXenstoreData := make(map[string]string)
 		for key, value := range dXenstoreDataRaw.(map[string]interface{}) {
-			dXenstoreData[key] = value.(string)
+			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
 		}
 
 		err = c.client.VM().SetXenstoreData(c.session, xenVM, dXenstoreData)
