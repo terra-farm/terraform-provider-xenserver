@@ -39,6 +39,20 @@ func resourceVM() *schema.Resource {
 	}
 }
 
+func filterVMTemplates(c *Connection, vms []xenAPI.VMRef) ([]xenAPI.VMRef, error) {
+	var templates []xenAPI.VMRef
+	for _, vm := range vms {
+		isATemplate, err := c.client.VM().GetIsATemplate(c.session, vm)
+		if err != nil {
+			return templates, err
+		}
+		if isATemplate {
+			templates = append(templates, vm)
+		}
+	}
+	return templates, nil
+}
+
 func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
@@ -49,24 +63,20 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if len(xenBaseTemplates) == 0 {
-		return fmt.Errorf("No template with label %q has been found", dBaseTemplateName)
-	}
-
-	if len(xenBaseTemplates) > 1 {
-		return fmt.Errorf("More than one template with label %q has been found", dBaseTemplateName)
-	}
-
-	xenBaseTemplate := xenBaseTemplates[0]
-
-	isTemplate, err := c.client.VM().GetIsATemplate(c.session, xenBaseTemplate)
+	xenBaseTemplates, err = filterVMTemplates(c, xenBaseTemplates)
 	if err != nil {
 		return err
 	}
 
-	if !isTemplate {
-		return fmt.Errorf("A VM with name %q has been found, but it is not a template", dBaseTemplateName)
+	if len(xenBaseTemplates) == 0 {
+		return fmt.Errorf("No VM template with label %q has been found", dBaseTemplateName)
 	}
+
+	if len(xenBaseTemplates) > 1 {
+		return fmt.Errorf("More than one VM template with label %q has been found", dBaseTemplateName)
+	}
+
+	xenBaseTemplate := xenBaseTemplates[0]
 
 	dNameLabel := d.Get(vmSchemaNameLabel).(string)
 
