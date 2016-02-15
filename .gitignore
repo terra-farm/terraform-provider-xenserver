@@ -1,1 +1,2 @@
-/terraform-provider-xenserver
+vendor
+terraform-provider-xenserver*
