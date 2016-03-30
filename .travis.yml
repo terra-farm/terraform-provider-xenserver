@@ -4,13 +4,13 @@ os:
   - linux
   - osx
 go:
-  - 1.5.1
+  - 1.6
 
 # Deploy executables to Github release tags
 deploy:
   provider: releases
   api_key:
-    secure: VbC70j1oB3fjRdb36CrffO69DmkTK9t/yWzXM9wP7wsMPhlXnat0n/CSqNqY8MDMIeM68ra5iF3sfWmNdQ2yNKq/9Qb9pV0+X68HxhJKmI5LONd8qHqdZzoNa/ITaHHZ3Fyj8KTMMGBTA7ONBJ+DgzIhUcWWsbGNfDkICW7es1d2/8Q/2QhIiZNLfDuWG1V2Af1452ek2YpnOCE3ENvBQ9FYCd4Iv0Y/FGzls3oepoVZPW9bXvX3sceAENNJiAmsnKqlwQW+jho3jv3//64YfaNb1IlU13n85t8HwYUD3v8BriuPEFWwfUft01nNjMV2jwVAlZ9or1Ye/BMh/JCuLNZlrsRQVQ9Etjuaq5NhAWGZXce9wMNQOdxge4rIX/LMddM5ImeBh2lT/UT78gOBlGlPZ9yA6jqEroU9mSw2lLmzW1+sN2XbyUSJw/EMW1mS8DCltkFht1L0XXg/vsgnA+4Z3/9k62OrM/pAtm/TN2vmI1KgNh94PPxCSU1n6iWpA43Mya+8qfRiTecPOVsKzLoIFQegIg1oJ0xoZHlibD88rZz4ZieVhPtMWRjUEY4jJ/PsaI//bwLKhw3LpDgHTNez6ZLIky00VVs7HVIQzMUE8G6zXKUye2+jLduvQyf7g4SacEhJdrOIHdNImsEv88sAWWXmqryd9jZzDLys7L0=
+    secure: EcPpctVWhON3hNRqznCptwXHuEO4OVWlvVo2Jq4AJ6DGgZ7niNAgxyOQpKq4u2C0hRJVCyp9O3dxqLtnuNObnKP+moillqqu0tm4EohBWmzVuLc9FQWWazv4VXi/685cNpYUVYeuPzSPCleqsOHiVIZ1bQtdG/Ax5EzHNf3/ZI3z05q9cHavjb4TYF9FxIy7QdcbHtu4N1NX35XPmlhk65iPC/0SCvm14djipOXeaL07fklX5e1kTiwLybyIbBYVkHHYwHAJPb0aC0U4fR8cYxDv+0zQEll14kxdjoEv93PosX9eqFqr0Pv4XFKNrdqerqqDQRJDYy13LSZ4dSt3fnO27kK+iGaWqRAJhbCUBqY27VyOw8BXX4ng6K9ypki2FYXQsHAmHkwBBYG2KjKG7wxWVkB4JVxMGXAqOaZN/ukrdOMcwfErpbOnthrZRmpIDHN2O9K1gwsj8wdfg7aSynmEd+WvYa4S7V22+Z6PYK3UUUROzaN5fgtH+8dIIQcwuR6bye7HK23Ck33mg5YTkFRCph+NP9o0ccEZBT0/KYRj6tWd/j3wkTJypDpttRHKkE11mrEHIm5kbsRyGDZVjOlrtK0Vu1vX1IeS+4dB4Ekecma7BHK4L04BaIfdGogpnOPT9jHz8F7saQGCyK6/4FheV/05DZSNOPat6ZHKGPE=
   file: "terraform-provider-xenserver-$(uname -s)-$(uname -m)"
   skip_cleanup: true
   on:
