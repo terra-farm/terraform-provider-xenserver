@@ -113,10 +113,10 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	err = c.client.VM.Start(c.session, xenVM, false, false)
-	if err != nil {
-		return err
-	}
+	//err = c.client.VM.Start(c.session, xenVM, false, false)
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 }
