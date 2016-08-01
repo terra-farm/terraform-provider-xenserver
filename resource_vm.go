@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/amfranz/go-xen-api-client"
 	"github.com/hashicorp/terraform/helper/schema"
+	"strconv"
 )
 
 const (
@@ -273,6 +274,20 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	if _coresPerSocket, ok := d.GetOk(vmSchemaBootOrder); ok {
+		coresPerSocket := _coresPerSocket.(int)
+
+		if vm.VCPUCount % coresPerSocket != 0 {
+			return fmt.Errorf("%d cores could not fit to %d cores-per-socket topology", vm.VCPUCount, coresPerSocket)
+		}
+
+		vm.Platform["cores-per-socket"] = strconv.Itoa(coresPerSocket)
+	}
+
+	if err = c.client.VM.SetPlatform(c.session, vm.VMRef, vm.Platform); err != nil {
+		return err
+	}
+
 	err = c.client.VM.Provision(c.session, xenVM)
 	if err != nil {
 		return err
@@ -378,6 +393,11 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 
 	if order, ok := vm.HVMBootParameters["order"]; ok {
 		d.Set(vmSchemaBootOrder, order)
+	}
+
+	if cps, ok := vm.Platform["cores-per-socket"]; ok {
+		coresPerSocket, _ := strconv.Atoi(cps)
+		d.Set(vmSchemaCoresPerSocket, coresPerSocket)
 	}
 
 	return nil
@@ -559,6 +579,25 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		if err := c.client.VM.SetHVMBootParams(c.session, vm.VMRef, vm.HVMBootParameters); err != nil {
 			return err
 		}
+
+		d.SetPartial(vmSchemaBootOrder)
+	}
+
+	if d.HasChange(vmSchemaCoresPerSocket) {
+		_, n := d.GetChange(vmSchemaCoresPerSocket)
+		coresPerSocket := n.(int)
+
+		if vm.VCPUCount % coresPerSocket != 0 {
+			return fmt.Errorf("%d cores could not fit to %d cores-per-socket topology", vm.VCPUCount, coresPerSocket)
+		}
+
+		vm.Platform["cores-per-socket"] = strconv.Itoa(coresPerSocket)
+
+		if err := c.client.VM.SetPlatform(c.session, vm.VMRef, vm.Platform); err != nil {
+			return err
+		}
+
+		d.SetPartial(vmSchemaCoresPerSocket)
 	}
 
 	d.Partial(false)

@@ -54,6 +54,7 @@ type VMDescriptor struct {
 	OtherConfig   map[string]string
 	XenstoreData  map[string]string
 	HVMBootParameters map[string]string
+	Platform      map[string]string
 
 	VMRef         xenAPI.VMRef
 }
@@ -191,6 +192,7 @@ func (this *VMDescriptor) Query(c *Connection) error {
 	this.OtherConfig = vm.OtherConfig
 	this.XenstoreData = vm.XenstoreData
 	this.HVMBootParameters = vm.HVMBootParams
+	this.Platform = vm.Platform
 
 	return nil
 }
