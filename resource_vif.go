@@ -41,7 +41,7 @@ func readVIFsFromSchema(c *Connection, s []interface{}) ([]*VIFDescriptor, error
 	for _, schm := range s {
 		data := schm.(map[string]interface{})
 
-		network := NetworkDescriptor{}
+		network := &NetworkDescriptor{}
 		if id, ok := data[vifSchemaNetworkNameLabel]; ok {
 			network.Name = id.(string)
 		}

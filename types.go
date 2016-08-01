@@ -56,8 +56,8 @@ type VMDescriptor struct {
 }
 
 type VIFDescriptor struct {
-	Network NetworkDescriptor
-	VM VMDescriptor
+	Network *NetworkDescriptor
+	VM *VMDescriptor
 	UUID string
 	MTU int
 	MAC string
@@ -73,7 +73,7 @@ func (this *NetworkDescriptor) Load(c *Connection) error {
 	hasNetName := false
 	hasNetUUID := false
 
-	if this.Name != nil {
+	if this.Name != "" {
 		networks, err := c.client.Network.GetByNameLabel(c.session, this.Name)
 		if err != nil {
 			return err
@@ -88,7 +88,7 @@ func (this *NetworkDescriptor) Load(c *Connection) error {
 	}
 
 	if !hasNetName {
-		if this.UUID != nil {
+		if this.UUID != "" {
 			_network, err := c.client.Network.GetByUUID(c.session, this.UUID)
 			if err != nil {
 				return err
@@ -128,7 +128,7 @@ func (this *VMDescriptor) Load(c *Connection) error {
 	hasVMName := false
 	hasVMUUID := false
 
-	if this.Name != nil {
+	if this.Name != "" {
 		vms, err := c.client.VM.GetByNameLabel(c.session, this.Name)
 		if err != nil {
 			return err
@@ -143,8 +143,8 @@ func (this *VMDescriptor) Load(c *Connection) error {
 	}
 
 	if !hasVMName {
-		if this.UUID != nil {
-			_vm, err := c.client.Network.GetByUUID(c.session, this.UUID)
+		if this.UUID != "" {
+			_vm, err := c.client.VM.GetByUUID(c.session, this.UUID)
 			if err != nil {
 				return err
 			}
@@ -172,7 +172,7 @@ func (this *VMDescriptor) Query(c *Connection) error {
 	this.Name = vm.NameLabel
 	this.Description = vm.NameDescription
 	this.PowerState = vm.PowerState
-	this.IsPV = vm.PVBootloader != nil
+	this.IsPV = vm.PVBootloader != ""
 	this.VCPUCount = vm.VCPUsMax
 	this.StaticMemory = Range{
 		Min: vm.MemoryStaticMin,
@@ -234,19 +234,19 @@ func (this *VIFDescriptor) Query(c *Connection) error {
 	this.MAC = vif.MAC
 
 	if this.Network == nil {
-		this.Network = NetworkDescriptor{
+		this.Network = &NetworkDescriptor{
 			NetworkRef: vif.Network,
 		}
-		if err := this.Network.Query(); err != nil {
+		if err := this.Network.Query(c); err != nil {
 			return err
 		}
 	}
 
 	if this.VM == nil {
-		this.VM = VMDescriptor{
+		this.VM = &VMDescriptor{
 			VMRef: vif.VM,
 		}
-		if err := this.VM.Query(); err != nil {
+		if err := this.VM.Query(c); err != nil {
 			return err
 		}
 	}

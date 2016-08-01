@@ -33,7 +33,6 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"xenserver_vm": resourceVM(),
-			"xenserver_vif": resourceVIF(),
 		},
 
 		ConfigureFunc: providerConfigure,

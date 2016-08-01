@@ -188,7 +188,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vm := VMDescriptor{
+	vm := &VMDescriptor{
 		VMRef: xenVM,
 	}
 
@@ -330,7 +330,7 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
-	vm := VMDescriptor{
+	vm := &VMDescriptor{
 		UUID: d.Id(),
 	}
 	if err := vm.Load(c); err != nil {
