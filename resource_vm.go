@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"github.com/amfranz/go-xen-api-client"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strings"
 )
 
 const (
@@ -239,15 +238,14 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 
 	d.SetId(vm.UUID)
 
-	// TODO: Refactor
 	dXenstoreDataRaw, ok := d.GetOk(vmSchemaXenstoreData)
 	if ok {
-		dXenstoreData := make(map[string]string)
+		vm.XenstoreData = make(map[string]string)
 		for key, value := range dXenstoreDataRaw.(map[string]interface{}) {
-			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
+			vm.XenstoreData[key] = value.(string)
 		}
 
-		err = c.client.VM.SetXenstoreData(c.session, xenVM, dXenstoreData)
+		err = c.client.VM.SetXenstoreData(c.session, vm.VMRef, vm.XenstoreData)
 		if err != nil {
 			return err
 		}
@@ -282,8 +280,10 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
-	xenVM, err := c.client.VM.GetByUUID(c.session, d.Id())
-	if err != nil {
+	vm := &VMDescriptor{
+		UUID: d.Id(),
+	}
+	if err := vm.Load(c); err != nil {
 		if xenErr, ok := err.(*xenAPI.Error); ok {
 			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
 				d.SetId("")
@@ -294,17 +294,12 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vmRecord, err := c.client.VM.GetRecord(c.session, xenVM)
+	err := d.Set(vmSchemaNameLabel, vm.Name)
 	if err != nil {
 		return err
 	}
 
-	err = d.Set(vmSchemaNameLabel, vmRecord.NameLabel)
-	if err != nil {
-		return err
-	}
-
-	vmBaseTemplateName, ok := vmRecord.OtherConfig["base_template_name"]
+	vmBaseTemplateName, ok := vm.OtherConfig["base_template_name"]
 	if ok {
 		err = d.Set(vmSchemaBaseTemplateName, vmBaseTemplateName)
 		if err != nil {
@@ -312,14 +307,62 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
-	vmXenstoreData := make(map[string]string)
-	for key, value := range vmRecord.XenstoreData {
-		if strings.HasPrefix(key, xenstoreVMDataPrefix) {
-			vmXenstoreData[key[len(xenstoreVMDataPrefix):]] = value
-		}
+	err = d.Set(vmSchemaXenstoreData, vm.XenstoreData)
+	if err != nil {
+		return err
 	}
 
-	err = d.Set(vmSchemaXenstoreData, vmXenstoreData)
+	err = d.Set(vmSchemaVcpus, vm.VCPUCount)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaMemory, vm.StaticMemory.Max)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaStaticMemoryMax, vm.StaticMemory.Max)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaStaticMemoryMin, vm.StaticMemory.Min)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaDynamicMemoryMax, vm.DynamicMemory.Max)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaDynamicMemoryMin, vm.DynamicMemory.Min)
+	if err != nil {
+		return err
+	}
+
+	vmVifs, err := c.client.VM.GetVIFs(c.session, vm.VMRef)
+	if err != nil {
+		return err
+	}
+
+	vifs := make([]map[string]interface{}, 0, len(vmVifs))
+
+	for _, _vif := range vmVifs {
+		vif := VIFDescriptor{
+			VIFRef: _vif,
+		}
+
+		if err := vif.Query(c); err != nil {
+			return err
+		}
+
+		vifData := fillVIFSchema(vif)
+
+		vifs = append(vifs, vifData)
+	}
+	err = d.Set(vmSchemaNetworkInterfaces, vifs)
 	if err != nil {
 		return err
 	}

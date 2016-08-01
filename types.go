@@ -51,6 +51,8 @@ type VMDescriptor struct {
 	VIFCount      int
 	VBDCount      int
 	PCICount      int
+	OtherConfig   map[string]string
+	XenstoreData  map[string]string
 
 	VMRef         xenAPI.VMRef
 }
@@ -185,6 +187,8 @@ func (this *VMDescriptor) Query(c *Connection) error {
 	this.VIFCount = len(vm.VIFs)
 	this.VBDCount = len(vm.VBDs)
 	this.PCICount = len(vm.AttachedPCIs)
+	this.OtherConfig = vm.OtherConfig
+	this.XenstoreData = vm.XenstoreData
 
 	return nil
 }
