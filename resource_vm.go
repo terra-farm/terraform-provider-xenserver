@@ -410,6 +410,15 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	if d.HasChange(vmSchemaVcpus) {
+		_, vcpus := d.GetChange(vmSchemaVcpus)
+		vm.VCPUCount = vcpus.(int)
+		if err := vm.UpdateVCPUs(c); err != nil {
+			return err
+		}
+		d.SetPartial(vmSchemaVcpus)
+	}
+
 	if d.HasChange(vmSchemaNetworkInterfaces) {
 		o, n := d.GetChange(vmSchemaNetworkInterfaces)
 
