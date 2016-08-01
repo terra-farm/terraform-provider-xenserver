@@ -523,6 +523,17 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	vifs, err := c.client.VM.GetVIFs(c.session, vm.VMRef)
+	if err != nil {
+		return err
+	}
+
+	for _, vif := range vifs {
+		if err := c.client.VIF.Destroy(c.session, vif); err != nil {
+			return err
+		}
+	}
+
 	if err := c.client.VM.Destroy(c.session, vm.VMRef); err != nil {
 		return err
 	}
