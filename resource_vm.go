@@ -264,6 +264,15 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	if _order, ok := d.GetOk(vmSchemaBootOrder); ok {
+		order := _order.(string)
+		vm.HVMBootParameters["order"] = order
+	}
+
+	if err = c.client.VM.SetHVMBootParams(c.session, vm.VMRef, vm.HVMBootParameters); err != nil {
+		return err
+	}
+
 	err = c.client.VM.Provision(c.session, xenVM)
 	if err != nil {
 		return err
@@ -365,6 +374,10 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 	err = d.Set(vmSchemaNetworkInterfaces, vifs)
 	if err != nil {
 		return err
+	}
+
+	if order, ok := vm.HVMBootParameters["order"]; ok {
+		d.Set(vmSchemaBootOrder, order)
 	}
 
 	return nil
@@ -536,6 +549,16 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 
 		d.SetPartial(vmSchemaXenstoreData)
+	}
+
+	if d.HasChange(vmSchemaBootOrder) {
+		_, n := d.GetChange(vmSchemaBootOrder)
+		order := n.(string)
+		vm.HVMBootParameters["order"] = order
+
+		if err := c.client.VM.SetHVMBootParams(c.session, vm.VMRef, vm.HVMBootParameters); err != nil {
+			return err
+		}
 	}
 
 	d.Partial(false)
