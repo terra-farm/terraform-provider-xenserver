@@ -21,9 +21,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/amfranz/go-xen-api-client"
+	"github.com/mborodin/go-xen-api-client"
 	"github.com/hashicorp/terraform/helper/schema"
 	"strconv"
+	"log"
 )
 
 const (
@@ -106,6 +107,7 @@ func resourceVM() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: resourceVIF(),
+				Set: vifHash,
 			},
 
 			vmSchemaHardDrives: &schema.Schema{
@@ -293,10 +295,10 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	//err = c.client.VM.Start(c.session, xenVM, false, false)
-	//if err != nil {
-	//	return err
-	//}
+	err = c.client.VM.Start(c.session, xenVM, false, false)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -372,6 +374,7 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 	}
 
 	vifs := make([]map[string]interface{}, 0, len(vmVifs))
+	log.Println(fmt.Sprintf("[DEBUG] Got %d VIFs", len(vmVifs)))
 
 	for _, _vif := range vmVifs {
 		vif := VIFDescriptor{
@@ -382,15 +385,19 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 			return err
 		}
 
+		log.Println("[DEBUG] Found VIF", vif.UUID)
 		vifData := fillVIFSchema(vif)
+		log.Println("[DEBUG] VIF: ", vifData)
 
 		vifs = append(vifs, vifData)
 	}
 	err = d.Set(vmSchemaNetworkInterfaces, vifs)
 	if err != nil {
+		log.Println("[ERROR] ", err)
 		return err
 	}
 
+	log.Println("[DEBUG] Query boot order")
 	if order, ok := vm.HVMBootParameters["order"]; ok {
 		d.Set(vmSchemaBootOrder, order)
 	}
@@ -509,6 +516,8 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 
 		if len(remove) > 0 {
 
+			log.Println(fmt.Sprintf("[DEBUG] Got %d VIFs to remove", len(remove)))
+
 			var vmVifs []*VIFDescriptor
 			if _vmVifs, err := c.client.VM.GetVIFs(c.session, vm.VMRef); err == nil {
 				for _, _vif := range _vmVifs {
@@ -534,6 +543,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 					}
 				}
 				if vifToRemove != nil {
+					log.Println(fmt.Sprintf("[DEBUG] Removing VIF %q", vif.UUID))
 					if err := c.client.VIF.Destroy(c.session, vifToRemove.VIFRef); err != nil {
 						return err
 					}
@@ -547,6 +557,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		}
 
 		if len(create) > 0 {
+			log.Println(fmt.Sprintf("[DEBUG] Will create %d VIFs", len(create)))
 			for _, vif := range create {
 				vif.VM = vm
 				if _, err := createVIF(c, vif); err != nil {

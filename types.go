@@ -20,7 +20,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/amfranz/go-xen-api-client"
+	"github.com/mborodin/go-xen-api-client"
 	"strconv"
 )
 
@@ -103,7 +103,7 @@ func (this *NetworkDescriptor) Load(c *Connection) error {
 	}
 
 	if !hasNetName && !hasNetUUID {
-		return fmt.Errorf("Either %q or %q should be specified!", vifSchemaNetworkNameLabel, vifSchemaNetworkUUID)
+		return fmt.Errorf("%q should be specified!", vifSchemaNetworkUUID)
 	}
 
 	this.NetworkRef = network
@@ -158,7 +158,7 @@ func (this *VMDescriptor) Load(c *Connection) error {
 	}
 
 	if !hasVMName && !hasVMUUID {
-		return fmt.Errorf("Either %q or %q should be specified!", vifSchemaNetworkNameLabel, vifSchemaNetworkUUID)
+		return fmt.Errorf("Either name or UUID should be specified!")
 	}
 
 	this.VMRef = vm

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/amfranz/go-xen-api-client"
+	"github.com/mborodin/go-xen-api-client"
 )
 
 // Config ...
