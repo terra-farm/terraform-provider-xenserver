@@ -30,7 +30,6 @@ import (
 const (
 	vmSchemaNameLabel                 = "name_label"
 	vmSchemaBaseTemplateName          = "base_template_name"
-	vmSchemaMemory                    = "mem"
 	vmSchemaStaticMemoryMin           = "static_mem_min"
 	vmSchemaStaticMemoryMax           = "static_mem_max"
 	vmSchemaDynamicMemoryMin          = "dynamic_mem_min"
@@ -72,29 +71,24 @@ func resourceVM() *schema.Resource {
 				Optional: true,
 			},
 
-			vmSchemaMemory: &schema.Schema{
+			vmSchemaStaticMemoryMin: &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 			},
 
-			vmSchemaStaticMemoryMin: &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-
 			vmSchemaStaticMemoryMax: &schema.Schema{
 				Type:     schema.TypeInt,
-				Optional: true,
+				Required: true,
 			},
 
 			vmSchemaDynamicMemoryMin: &schema.Schema{
 				Type:     schema.TypeInt,
-				Optional: true,
+				Required: true,
 			},
 
 			vmSchemaDynamicMemoryMax: &schema.Schema{
 				Type:     schema.TypeInt,
-				Optional: true,
+				Required: true,
 			},
 
 			vmSchemaBootOrder: &schema.Schema{
@@ -199,16 +193,6 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	// Memory configuration
-	mem := d.Get(vmSchemaMemory)
-	vm.StaticMemory = Range{
-		Min: mem.(int),
-		Max: mem.(int),
-	}
-	vm.DynamicMemory = Range{
-		Min: mem.(int),
-		Max: mem.(int),
-	}
-
 	mem, ok := d.GetOk(vmSchemaStaticMemoryMin)
 	if ok {
 		vm.StaticMemory.Min = mem.(int)
@@ -343,11 +327,6 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	err = d.Set(vmSchemaMemory, vm.StaticMemory.Max)
-	if err != nil {
-		return err
-	}
-
 	err = d.Set(vmSchemaStaticMemoryMax, vm.StaticMemory.Max)
 	if err != nil {
 		return err
@@ -441,19 +420,6 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 
 	updatedFields := make([]string, 0, 5)
 	updateMemory := false
-	if d.HasChange(vmSchemaMemory) {
-		mem := d.Get(vmSchemaMemory).(int)
-		vm.StaticMemory = Range{
-			Max: mem,
-			Min: mem,
-		}
-		vm.DynamicMemory = Range{
-			Max: mem,
-			Min: mem,
-		}
-		updateMemory = true
-		updatedFields = append(updatedFields, vmSchemaMemory)
-	}
 
 	if d.HasChange(vmSchemaStaticMemoryMax) {
 		mem := d.Get(vmSchemaStaticMemoryMax).(int)
