@@ -192,6 +192,13 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	// reset template flag
+	if vm.IsATemplate {
+		if err = c.client.VM.SetIsATemplate(c.session, vm.VMRef, false); err != nil {
+			return err
+		}
+	}
+
 	// Memory configuration
 	mem, ok := d.GetOk(vmSchemaStaticMemoryMin)
 	if ok {
@@ -283,6 +290,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
+	log.Println("[DEBUG] Done")
 
 	return nil
 }

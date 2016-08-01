@@ -55,6 +55,7 @@ type VMDescriptor struct {
 	XenstoreData  map[string]string
 	HVMBootParameters map[string]string
 	Platform      map[string]string
+	IsATemplate   bool
 
 	VMRef         xenAPI.VMRef
 }
@@ -193,6 +194,7 @@ func (this *VMDescriptor) Query(c *Connection) error {
 	this.XenstoreData = vm.XenstoreData
 	this.HVMBootParameters = vm.HVMBootParams
 	this.Platform = vm.Platform
+	this.IsATemplate = vm.IsATemplate
 
 	return nil
 }
