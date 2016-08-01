@@ -35,7 +35,7 @@ const (
 	vmSchemaDynamicMemoryMin          = "dynamic_mem_min"
 	vmSchemaDynamicMemoryMax          = "dynamic_mem_max"
 	vmSchemaBootOrder                 = "boot_order"
-	vmSchemaNetworkInterfaces         = "network_interfaces"
+	vmSchemaNetworkInterfaces         = "network_interface"
 	vmSchemaHardDrives                = "hard_drives"
 	vmSchemaBootParameters            = "boot_parameters"
 	vmSchemaInstallationMediaType     = "installation_media_type"
