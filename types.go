@@ -43,7 +43,7 @@ type VMDescriptor struct {
 	UUID          string
 	Name          string
 	Description   string
-	PowerState    string
+	PowerState    xenAPI.VMPowerState
 	IsPV          bool
 	StaticMemory  Range
 	DynamicMemory Range
