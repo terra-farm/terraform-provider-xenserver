@@ -86,12 +86,6 @@ func fillVBDSchema(vbd VBDDescriptor) map[string]interface{} {
 }
 
 func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
-	// FIXME: Should be available to add VBD to running VM with PV drivers installed
-	// TODO: Check PV driver status
-	if vbd.VM.PowerState == xenAPI.VMPowerStateRunning {
-		return nil, fmt.Errorf("VM %q(%q) is in running state!", vbd.VM.Name, vbd.VM.UUID)
-	}
-
 	log.Println(fmt.Sprintf("[DEBUG] Creating VBD for VM %q", vbd.VM.Name))
 
 	vbdObject := xenAPI.VBDRecord{
@@ -100,6 +94,16 @@ func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 		Bootable: vbd.Bootable,
 		VM: vbd.VM.VMRef,
 		Empty: vbd.VDI == nil,
+	}
+
+	if devices, err := c.client.VM.GetAllowedVBDDevices(c.session, vbd.VM.VMRef); err == nil {
+		if len(devices) == 0 {
+			return nil, fmt.Errorf("No available devices to attach to")
+		}
+		vbdObject.Userdevice = devices[0]
+		log.Println("[DEBUG] Selected device for VBD: ", vbdObject.Userdevice)
+	} else {
+		return nil, err
 	}
 
 	if vbd.VDI != nil {
@@ -121,12 +125,14 @@ func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 
 	log.Println(fmt.Sprintf("[DEBUG] VBD  UUID %q", vbd.UUID))
 
-	err = c.client.VBD.Plug(c.session, vbdRef)
-	if err != nil {
-		return nil, err
-	}
+	if vbd.VM.PowerState == xenAPI.VMPowerStateRunning {
+		err = c.client.VBD.Plug(c.session, vbdRef)
+		if err != nil {
+			return nil, err
+		}
 
-	log.Println(fmt.Sprintf("[DEBUG] Plugged VBD %q to VM %q", vbd.UUID, vbd.VM.Name))
+		log.Println(fmt.Sprintf("[DEBUG] Plugged VBD %q to VM %q", vbd.UUID, vbd.VM.Name))
+	}
 
 	return vbd, nil
 }
@@ -136,7 +142,7 @@ func vbdHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	log.Println("[DEBUG] ", m)
 	buf.WriteString(fmt.Sprintf("%s-", m["vdi_uuid"].(string)))
-	buf.WriteString(fmt.Sprintf("%t-",m["bootable"].(int)))
+	buf.WriteString(fmt.Sprintf("%t-",m["bootable"].(bool)))
 	buf.WriteString(fmt.Sprintf("%s-",
 		strings.ToLower(m["mode"].(string))))
 
@@ -144,15 +150,22 @@ func vbdHash(v interface{}) int {
 }
 
 func createVBDs(c *Connection, s []interface{}, vbdType xenAPI.VbdType, vm *VMDescriptor) (err error) {
-
 	var vbds []*VBDDescriptor
+	log.Println("[DEBUG] Creating ", len(s), " VBDS of type ", vbdType)
+
 	if vbds, err = readVBDsFromSchema(c, s); err != nil {
 		return err
 	}
 
+	log.Println("[DEBUG] Parsed ", len(vbds), " VBD descriptors")
+
 	for _, vbd := range vbds {
 		vbd.Type = vbdType
 		vbd.VM = vm
+
+		if vbdType == xenAPI.VbdTypeCD {
+			vbd.Mode = xenAPI.VbdModeRO
+		}
 
 		if _, err = createVBD(c, vbd); err != nil {
 			return err
@@ -178,6 +191,7 @@ func resourceVBD() *schema.Resource {
 			vbdSchemaMode     : &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default: xenAPI.VbdModeRW,
 			},
 		},
 	}

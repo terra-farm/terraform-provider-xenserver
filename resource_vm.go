@@ -202,13 +202,6 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	// reset template flag
-	if vm.IsATemplate {
-		if err = c.client.VM.SetIsATemplate(c.session, vm.VMRef, false); err != nil {
-			return err
-		}
-	}
-
 	// Memory configuration
 	mem, ok := d.GetOk(vmSchemaStaticMemoryMin)
 	if ok {
@@ -255,6 +248,8 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	log.Println("[DEBUG] VM Power State: ", vm.PowerState)
+
 	var vifs []*VIFDescriptor
 
 	if vifs, err = readVIFsFromSchema(c, d.Get(vmSchemaNetworkInterfaces).(*schema.Set).List()); err != nil {
@@ -264,15 +259,20 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	for _, vif := range vifs {
 		vif.VM = vm
 		if vif, err = createVIF(c, vif); err != nil {
-			return nil
+			log.Println("[ERROR] ", err)
+			return err
 		}
 	}
 
+	log.Println("[DEBUG] Creating CDs")
 	if err = createVBDs(c, d.Get(vmSchemaCdRom).(*schema.Set).List(), xenAPI.VbdTypeCD, vm); err != nil {
+		log.Println("[ERROR] ", err)
 		return err
 	}
 
+	log.Println("[DEBUG] Creating HDDs")
 	if err = createVBDs(c, d.Get(vmSchemaHardDrive).(*schema.Set).List(), xenAPI.VbdTypeDisk, vm); err != nil {
+		log.Println("[ERROR] ", err)
 		return err
 	}
 
@@ -285,7 +285,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if _coresPerSocket, ok := d.GetOk(vmSchemaBootOrder); ok {
+	if _coresPerSocket, ok := d.GetOk(vmSchemaCoresPerSocket); ok {
 		coresPerSocket := _coresPerSocket.(int)
 
 		if vm.VCPUCount % coresPerSocket != 0 {
@@ -299,11 +299,20 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	log.Println("[DEBUG] Provisioning VM")
 	err = c.client.VM.Provision(c.session, xenVM)
 	if err != nil {
 		return err
 	}
 
+	// reset template flag
+	if vm.IsATemplate {
+		if err = c.client.VM.SetIsATemplate(c.session, vm.VMRef, false); err != nil {
+			return err
+		}
+	}
+
+	log.Println("[DEBUG] Starting VM")
 	err = c.client.VM.Start(c.session, xenVM, false, false)
 	if err != nil {
 		return err

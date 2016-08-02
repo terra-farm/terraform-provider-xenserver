@@ -87,12 +87,6 @@ func fillVIFSchema(vif VIFDescriptor) map[string]interface{} {
 }
 
 func createVIF(c *Connection, vif *VIFDescriptor) (*VIFDescriptor, error) {
-	// FIXME: Should be available to add VIF to running VM with PV drivers installed
-	// TODO: Check PV driver status
-	if vif.VM.PowerState == xenAPI.VMPowerStateRunning {
-		return nil, fmt.Errorf("VM %q(%q) is in running state!", vif.VM.Name, vif.VM.UUID)
-	}
-
 	log.Println(fmt.Sprintf("[DEBUG] Creating VIF for VM %q in network %q", vif.VM.Name, vif.Network.Name))
 
 	if vif.DeviceOrder == 0 {
@@ -124,12 +118,14 @@ func createVIF(c *Connection, vif *VIFDescriptor) (*VIFDescriptor, error) {
 
 	log.Println(fmt.Sprintf("[DEBUG] VIF  UUID %q", vif.UUID))
 
-	err = c.client.VIF.Plug(c.session, vifRef)
-	if err != nil {
-		return nil, err
-	}
+	if vif.VM.PowerState == xenAPI.VMPowerStateRunning {
+		err = c.client.VIF.Plug(c.session, vif.VIFRef)
+		if err != nil {
+			return nil, err
+		}
 
-	log.Println(fmt.Sprintf("[DEBUG] Plugged VIF %q to VM %q", vif.UUID, vif.VM.Name))
+		log.Println(fmt.Sprintf("[DEBUG] Plugged VIF %q to VM %q", vif.UUID, vif.VM.Name))
+	}
 
 	return vif, nil
 }
