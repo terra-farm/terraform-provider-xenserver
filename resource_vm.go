@@ -36,7 +36,8 @@ const (
 	vmSchemaDynamicMemoryMax          = "dynamic_mem_max"
 	vmSchemaBootOrder                 = "boot_order"
 	vmSchemaNetworkInterfaces         = "network_interface"
-	vmSchemaHardDrives                = "hard_drives"
+	vmSchemaHardDrive                 = "hard_drive"
+	vmSchemaCdRom                     = "cdrom"
 	vmSchemaBootParameters            = "boot_parameters"
 	vmSchemaInstallationMediaType     = "installation_media_type"
 	vmSchemaInstallationMediaLocation = "installation_media_location"
@@ -104,9 +105,18 @@ func resourceVM() *schema.Resource {
 				Set: vifHash,
 			},
 
-			vmSchemaHardDrives: &schema.Schema{
-				Type:     schema.TypeInt,
+			vmSchemaHardDrive: &schema.Schema{
+				Type:     schema.TypeSet,
 				Optional: true,
+				Elem: resourceVBD(),
+				Set: vbdHash,
+			},
+
+			vmSchemaCdRom: &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: resourceVBD(),
+				Set: vbdHash,
 			},
 
 			vmSchemaBootParameters: &schema.Schema{
@@ -256,6 +266,14 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		if vif, err = createVIF(c, vif); err != nil {
 			return nil
 		}
+	}
+
+	if err = createVBDs(c, d.Get(vmSchemaCdRom).(*schema.Set).List(), xenAPI.VbdTypeCD, vm); err != nil {
+		return err
+	}
+
+	if err = createVBDs(c, d.Get(vmSchemaHardDrive).(*schema.Set).List(), xenAPI.VbdTypeDisk, vm); err != nil {
+		return err
 	}
 
 	if _order, ok := d.GetOk(vmSchemaBootOrder); ok {

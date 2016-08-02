@@ -95,9 +95,11 @@ func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 	log.Println(fmt.Sprintf("[DEBUG] Creating VBD for VM %q", vbd.VM.Name))
 
 	vbdObject := xenAPI.VBDRecord{
-		VM: vbd.VM.VMRef,
+		Type: vbd.Type,
 		Mode: vbd.Mode,
 		Bootable: vbd.Bootable,
+		VM: vbd.VM.VMRef,
+		Empty: vbd.VDI == nil,
 	}
 
 	if vbd.VDI != nil {
@@ -139,6 +141,25 @@ func vbdHash(v interface{}) int {
 		strings.ToLower(m["mode"].(string))))
 
 	return hashcode.String(buf.String())
+}
+
+func createVBDs(c *Connection, s []interface{}, vbdType xenAPI.VbdType, vm *VMDescriptor) (err error) {
+
+	var vbds []*VBDDescriptor
+	if vbds, err = readVBDsFromSchema(c, s); err != nil {
+		return err
+	}
+
+	for _, vbd := range vbds {
+		vbd.Type = vbdType
+		vbd.VM = vm
+
+		if _, err = createVBD(c, vbd); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func resourceVBD() *schema.Resource {
