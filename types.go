@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/mborodin/go-xen-api-client"
 	"strconv"
+	"log"
 )
 
 type Range struct {
@@ -70,6 +71,40 @@ type VIFDescriptor struct {
 	DeviceOrder int
 
 	VIFRef xenAPI.VIFRef
+}
+
+type SRDescriptor struct {
+	Name string
+	UUID string
+	Description string
+	Host string
+	Type string
+	ContentType string
+	Shared bool
+
+	SRRef xenAPI.SRRef
+}
+
+type VDIDescriptor struct {
+	Name string
+	UUID string
+	SR *SRDescriptor
+	IsShared bool
+	IsReadOnly bool
+
+	VDIRef xenAPI.VDIRef
+}
+
+type VBDDescriptor struct {
+	UUID string
+	VM *VMDescriptor
+	VDI *VDIDescriptor
+	Device string
+	Mode xenAPI.VbdMode
+	Type xenAPI.VbdType
+	Bootable bool
+
+	VBDRef xenAPI.VBDRef
 }
 
 func (this *NetworkDescriptor) Load(c *Connection) error {
@@ -260,6 +295,180 @@ func (this *VIFDescriptor) Query(c *Connection) error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (this *SRDescriptor) Load(c *Connection) error {
+	var sr xenAPI.SRRef
+
+	hasSRName := false
+	hasSRUUID := false
+
+	if this.Name != "" {
+		srs, err := c.client.SR.GetByNameLabel(c.session, this.Name)
+		if err != nil {
+			return err
+		}
+
+		if len(srs) == 0 {
+			return fmt.Errorf("Storage repository %q not found!", this.Name)
+		}
+
+		hasSRName = true
+		sr = srs[0]
+	}
+
+	if !hasSRName {
+		if this.UUID != "" {
+			_sr, err := c.client.SR.GetByUUID(c.session, this.UUID)
+			if err != nil {
+				return err
+			}
+			hasSRUUID = true
+			sr = _sr
+		}
+	}
+
+	if !hasSRName && !hasSRUUID {
+		return fmt.Errorf("Either %q or %q should be specified!", srSchemaUUID)
+	}
+
+	this.SRRef = sr
+
+	return this.Query(c)
+}
+
+func (this *SRDescriptor) Query(c *Connection) error {
+	sr, err := c.client.SR.GetRecord(c.session, this.SRRef)
+	if err != nil {
+		return err
+	}
+
+	this.UUID = sr.UUID
+	this.Name = sr.NameLabel
+	this.Description = sr.NameDescription
+	this.Shared = sr.Shared
+	this.Type = sr.Type
+	this.ContentType = sr.ContentType
+	log.Println("[DEBUG] ",sr.SmConfig)
+
+	return nil
+}
+
+func (this *VDIDescriptor) Load(c *Connection) error {
+	var vdi xenAPI.VDIRef
+
+	hasVDIName := false
+	hasVDIUUID := false
+
+	if this.Name != "" {
+		vdis, err := c.client.VDI.GetByNameLabel(c.session, this.Name)
+		if err != nil {
+			return err
+		}
+
+		if len(vdis) == 0 {
+			return fmt.Errorf("VDI %q not found!", this.Name)
+		}
+
+		hasVDIName = true
+		vdi = vdis[0]
+	}
+
+	if !hasVDIName {
+		if this.UUID != "" {
+			_vdi, err := c.client.VDI.GetByUUID(c.session, this.UUID)
+			if err != nil {
+				return err
+			}
+			hasVDIUUID = true
+			vdi = _vdi
+		}
+	}
+
+	if !hasVDIName && !hasVDIUUID {
+		return fmt.Errorf("Either name_label or UUID should be specified!")
+	}
+
+	this.VDIRef = vdi
+
+	return this.Query(c)
+}
+
+func (this *VDIDescriptor) Query(c *Connection) error {
+	vdi, err := c.client.VDI.GetRecord(c.session, this.VDIRef)
+	if err != nil {
+		return err
+	}
+
+	this.UUID = vdi.UUID
+	this.Name = vdi.NameLabel
+	this.IsReadOnly = vdi.ReadOnly
+	this.IsShared = vdi.Sharable
+
+	sr := &SRDescriptor{
+		SRRef: vdi.SR,
+	}
+
+	if err = sr.Query(c); err != nil {
+		return err
+	}
+
+	this.SR = sr
+
+	return nil
+}
+
+func (this *VBDDescriptor) Load(c *Connection) error {
+	var vbd xenAPI.VBDRef
+
+	if this.UUID != "" {
+			_vbd, err := c.client.VBD.GetByUUID(c.session, this.UUID)
+			if err != nil {
+				return err
+			}
+			vbd = _vbd
+	} else {
+		return fmt.Errorf("Either %q or %q should be specified!", vbdSchemaUUID)
+	}
+
+	this.VBDRef = vbd
+
+	return this.Query(c)
+}
+
+func (this *VBDDescriptor) Query(c *Connection) error {
+	vbd, err := c.client.VBD.GetRecord(c.session, this.VBDRef)
+	if err != nil {
+		return err
+	}
+
+	this.UUID = vbd.UUID
+	this.Type = vbd.Type
+	this.Device = vbd.Device
+	this.Bootable = vbd.Bootable
+	this.Mode = vbd.Mode
+
+	vm := &VMDescriptor{
+		VMRef: vbd.VM,
+	}
+
+	if err:= vm.Query(c); err != nil {
+		return err
+	}
+
+	this.VM = vm
+
+	vdi := &VDIDescriptor{
+		VDIRef: vbd.VDI,
+	}
+
+	if err:= vdi.Query(c); err != nil {
+		return err
+	}
+
+	this.VDI = vdi
 
 	return nil
 }
