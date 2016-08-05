@@ -23,13 +23,19 @@ Arguments:
 
 #### VM Creation
 ```
+resource "xenserver_vdi" "vdi" {
+  sr_uuid = "<sr uuid>"
+  name_label = "test vdi"
+  size = 1073741824 # 1GB
+}
+
 resource "xenserver_vm" "web" {
     name_label = "web"
     base_template_name = "<desired template>"
-    static_mem_min = 2048
-    static_mem_max = 2048
-    dynamic_mem_min = 2048
-    dynamic_mem_max = 2048
+    static_mem_min = 2147483648 # 2GB
+    static_mem_max = 2147483648
+    dynamic_mem_min = 2147483648
+    dynamic_mem_max = 2147483648
     boot_order = "cdn"
     network_interface {
         network_uuid = "<uuid>"
@@ -43,23 +49,31 @@ resource "xenserver_vm" "web" {
         device = 1
     }
     vcpus = 2
+    cdrom {
+      vdi_uuid = "<iso uuid>"
+    }
+    hard_drive {
+      vdi_uuid = "${xenserver_vdi.vdi.id}"
+    }
+
 }
 ```
 Arguments:
   * name_label - VM name
   * base_template_name - VM template
   * vcpus - Number of CPU's
-  * static_mem_min - Minimal static memory
-  * static_mem_max - Maximal static memory
-  * dynamic_mem_min - Minimal dynamic memory
-  * dynamic_mem_max - Maximal dynamic memory
+  * static_mem_min - Minimal static memory (in bytes)
+  * static_mem_max - Maximal static memory (in bytes)
+  * dynamic_mem_min - Minimal dynamic memory (in bytes)
+  * dynamic_mem_max - Maximal dynamic memory (in bytes)
   * boot_order (optional) - boot order. Use c for first bootable hard drive, d for CD-ROM, n for netboot. Example: cdn - boot from HD, CD, Network
-  * network_interface (optional) - Array of network interface definitions
-  * hard_drives (optional) - TBD
+  * network_interface (optional) - [Multiple possible] definition of network interface
+  * hard_drive (optional) - [Multiple possible] connected hard drive
+  * cdrom (optional) - [Multiple possible] connected cdrom
   * boot_parameters (optional) - TBD
   * installation_media_type (optional) - TDB
   * installation_media_location (optional) - TBD
-  * cores_per_socket (optional) - TBD
+  * cores_per_socket (optional) - CPU topology (default is 1 core per socket)
   * xenstore_data (optional) - Extra VM configuration data for in-VM use
 
 Network interface schema:
@@ -67,3 +81,15 @@ Network interface schema:
   * mac - Desired mac address
   * mtu - MTU
   * device - interface order
+
+Block device schema:
+  * vdi_uuid - UUID of connected VDI
+  * bootable (optional) - is device bootable. Default: *false*
+  * mode (optional) - RW or RO. Default: *RW*
+
+VDI Resource Schema
+  * sr_uuid - SR that will hold newly created VDI image
+  * name_label - VDI name
+  * size - size (in bytes)
+  * shared (optional) - should this VDI be shared among multiple VMs, Default: *false*
+  * read_only (optional) - is this VDI is read-only. Default: *false*
