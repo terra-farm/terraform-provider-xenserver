@@ -91,6 +91,7 @@ type VDIDescriptor struct {
 	SR *SRDescriptor
 	IsShared bool
 	IsReadOnly bool
+	Size int
 
 	VDIRef xenAPI.VDIRef
 }
@@ -407,6 +408,7 @@ func (this *VDIDescriptor) Query(c *Connection) error {
 	this.Name = vdi.NameLabel
 	this.IsReadOnly = vdi.ReadOnly
 	this.IsShared = vdi.Sharable
+	this.Size = vdi.VirtualSize
 
 	sr := &SRDescriptor{
 		SRRef: vdi.SR,

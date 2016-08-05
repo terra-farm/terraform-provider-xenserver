@@ -18,7 +18,11 @@
  */
 package main
 
-import "github.com/hashicorp/terraform/helper/schema"
+import (
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mborodin/go-xen-api-client"
+	"log"
+)
 
 const (
 	vdiSchemaUUID                 = "sr_uuid"
@@ -40,6 +44,7 @@ func resourceVDI() *schema.Resource {
 			vdiSchemaUUID  : &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			vdiSchemaName  : &schema.Schema{
@@ -70,21 +75,163 @@ func resourceVDI() *schema.Resource {
 
 func resourceVDICreate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
+
+	sr := &SRDescriptor{
+		UUID: d.Get(vdiSchemaUUID).(string),
+	}
+
+	log.Println("Going to create VDI in SR ", sr.UUID)
+
+	if err := sr.Load(c); err != nil {
+		log.Println("SR not found!")
+		return err
+	}
+
+	vdiRecord := xenAPI.VDIRecord{
+		NameLabel: d.Get(vdiSchemaName).(string),
+		VirtualSize: d.Get(vdiSchemaSize).(int),
+		Sharable: d.Get(vdiSchemaShared).(bool),
+		ReadOnly: d.Get(vdiSchemaRO).(bool),
+		SR: sr.SRRef,
+		Type: xenAPI.VdiTypeUser,
+	}
+
+	log.Println("Object to send: ", vdiRecord)
+	if vdiRef, err := c.client.VDI.Create(c.session, vdiRecord); err == nil {
+		log.Println("VDI Created")
+		vdi := &VDIDescriptor{
+			VDIRef: vdiRef,
+		}
+
+		if err := vdi.Query(c); err != nil {
+			return err
+		}
+		log.Println("UUID is ", vdi.UUID)
+		d.SetId(vdi.UUID)
+	} else {
+		log.Println("VDI not created!")
+		return err
+	}
+
+	return nil
 }
 
 func resourceVDIRead(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
+
+	vdi := &VDIDescriptor{
+		UUID: d.Id(),
+	}
+
+	if err := vdi.Load(c); err != nil {
+		return err
+	}
+
+	d.SetId(vdi.UUID)
+	if err := d.Set(vdiSchemaName, vdi.Name); err != nil {
+		return err
+	}
+
+	if err := d.Set(vdiSchemaRO, vdi.IsReadOnly); err != nil {
+		return err
+	}
+
+	if err := d.Set(vdiSchemaShared, vdi.IsShared); err != nil {
+		return err
+	}
+
+	if err := d.Set(vdiSchemaSize, vdi.Size); err != nil {
+		return err
+	}
+
 	return nil
 }
 func resourceVDIUpdate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
+
+	vdi := &VDIDescriptor{
+		UUID: d.Id(),
+	}
+
+	if err := vdi.Load(c); err != nil {
+		return err
+	}
+
+	if(d.HasChange(vdiSchemaName)) {
+		_, n := d.GetChange(vdiSchemaName)
+
+		if err := c.client.VDI.SetNameLabel(c.session, vdi.VDIRef, n.(string)); err != nil {
+			return err;
+		}
+
+		d.SetPartial(vdiSchemaName)
+	}
+
+	if(d.HasChange(vdiSchemaSize)) {
+		_, n := d.GetChange(vdiSchemaSize)
+
+		if err := c.client.VDI.SetVirtualSize(c.session, vdi.VDIRef, n.(int)); err != nil {
+			return err;
+		}
+
+		d.SetPartial(vdiSchemaSize)
+	}
+
+	if(d.HasChange(vdiSchemaShared)) {
+		_, n := d.GetChange(vdiSchemaShared)
+
+		if err := c.client.VDI.SetSharable(c.session, vdi.VDIRef, n.(bool)); err != nil {
+			return err;
+		}
+
+		d.SetPartial(vdiSchemaShared)
+	}
+
+	if(d.HasChange(vdiSchemaRO)) {
+		_, n := d.GetChange(vdiSchemaRO)
+
+		if err := c.client.VDI.SetReadOnly(c.session, vdi.VDIRef, n.(bool)); err != nil {
+			return err;
+		}
+
+		d.SetPartial(vdiSchemaRO)
+	}
+
 	return nil
 }
 func resourceVDIDelete(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
+
+	vdi := &VDIDescriptor{
+		UUID: d.Id(),
+	}
+
+	if err := vdi.Load(c); err != nil {
+		return err
+	}
+
+	if err := c.client.VDI.Destroy(c.session, vdi.VDIRef); err != nil {
+		return err
+	}
+
 	return nil
 }
 func resourceVDIExists(d *schema.ResourceData, m interface{}) (bool,error) {
 	c := m.(*Connection)
-	return false, nil
+
+	vdi := &VDIDescriptor{
+		UUID: d.Id(),
+	}
+
+	if err := vdi.Load(c); err != nil {
+		if xenErr, ok := err.(*xenAPI.Error); ok {
+			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
+				return false, nil
+			}
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
