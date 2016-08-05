@@ -456,12 +456,16 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 
 	log.Println("[DEBUG] Query boot order")
 	if order, ok := vm.HVMBootParameters["order"]; ok {
-		d.Set(vmSchemaBootOrder, order)
+		if err := d.Set(vmSchemaBootOrder, order); err != nil {
+			return err;
+		}
 	}
 
 	if cps, ok := vm.Platform["cores-per-socket"]; ok {
 		coresPerSocket, _ := strconv.Atoi(cps)
-		d.Set(vmSchemaCoresPerSocket, coresPerSocket)
+		if err := d.Set(vmSchemaCoresPerSocket, coresPerSocket); err != nil {
+			return err;
+		}
 	}
 
 	return nil

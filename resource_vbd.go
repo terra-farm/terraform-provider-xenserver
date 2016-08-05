@@ -140,11 +140,15 @@ func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 func vbdHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	log.Println("[DEBUG] ", m)
-	buf.WriteString(fmt.Sprintf("%s-", m["vdi_uuid"].(string)))
-	buf.WriteString(fmt.Sprintf("%t-",m["bootable"].(bool)))
-	buf.WriteString(fmt.Sprintf("%s-",
+	var count int = 0
+	b, _ := buf.WriteString(fmt.Sprintf("%s-", m["vdi_uuid"].(string)))
+	count += b
+	b, _ = buf.WriteString(fmt.Sprintf("%t-",m["bootable"].(bool)))
+	count += b
+	b, _ = buf.WriteString(fmt.Sprintf("%s-",
 		strings.ToLower(m["mode"].(string))))
+	count += b
+	log.Println("Consumed total ", count, " bytes to generate hash")
 
 	return hashcode.String(buf.String())
 }

@@ -133,12 +133,14 @@ func createVIF(c *Connection, vif *VIFDescriptor) (*VIFDescriptor, error) {
 func vifHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	log.Println("[DEBUG] ", m)
-	buf.WriteString(fmt.Sprintf("%s-", m["network_uuid"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-",m["mtu"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["device"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-",
+	var count int = 0
+	b, _ := buf.WriteString(fmt.Sprintf("%s-", m["network_uuid"].(string)))
+	b, _ = buf.WriteString(fmt.Sprintf("%d-",m["mtu"].(int)))
+	b, _ = buf.WriteString(fmt.Sprintf("%d-", m["device"].(int)))
+	b, _ = buf.WriteString(fmt.Sprintf("%s-",
 		strings.ToLower(m["mac"].(string))))
+	count += b
+	log.Println("Consumed total ", count, " bytes to generate hash")
 
 	return hashcode.String(buf.String())
 }
