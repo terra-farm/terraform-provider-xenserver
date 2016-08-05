@@ -612,6 +612,138 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 
 	}
 
+	if d.HasChange(vmSchemaCdRom) {
+		o, n := d.GetChange(vmSchemaCdRom)
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		var err error
+		var remove []*VBDDescriptor
+		if remove, err = readVBDsFromSchema(c, os.Difference(ns).List()); err == nil {
+			return err
+		}
+
+
+		if len(remove) > 0 {
+
+			log.Println(fmt.Sprintf("[DEBUG] Got %d cdroms to remove", len(remove)))
+
+			var vmVBDs []*VBDDescriptor
+			if _vmVBDs, err := c.client.VM.GetVBDs(c.session, vm.VMRef); err == nil {
+				for _, _vbd := range _vmVBDs {
+					vbd := &VBDDescriptor{
+						VBDRef: _vbd,
+					}
+
+					if err := vbd.Query(c); err != nil {
+						return err
+					}
+					vmVBDs = append(vmVBDs, vbd)
+				}
+			} else {
+				return err
+			}
+
+			for _, vbd := range remove {
+				var vbdToRemove *VBDDescriptor
+				for _, candidate := range vmVBDs {
+					if candidate.UserDevice == vbd.UserDevice {
+						vbdToRemove = candidate
+						break
+					}
+				}
+				if vbdToRemove != nil {
+					log.Println(fmt.Sprintf("[DEBUG] Removing cdrom %q", vbd.UUID))
+					if err := c.client.VBD.Destroy(c.session, vbdToRemove.VBDRef); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		var create []*VBDDescriptor
+		if create, err = readVBDsFromSchema(c, ns.Difference(os).List()); err == nil {
+			return err
+		}
+
+		if len(create) > 0 {
+			log.Println(fmt.Sprintf("[DEBUG] Will create %d cdroms", len(create)))
+			for _, cdrom := range create {
+				cdrom.VM = vm
+				if _, err := createVBD(c, cdrom); err != nil {
+					return nil
+				}
+			}
+		}
+	}
+
+	if d.HasChange(vmSchemaHardDrive) {
+		o, n := d.GetChange(vmSchemaHardDrive)
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		var err error
+		var remove []*VBDDescriptor
+		if remove, err = readVBDsFromSchema(c, os.Difference(ns).List()); err == nil {
+			return err
+		}
+
+
+		if len(remove) > 0 {
+
+			log.Println(fmt.Sprintf("[DEBUG] Got %d HDDs to remove", len(remove)))
+
+			var vmVBDs []*VBDDescriptor
+			if _vmVBDs, err := c.client.VM.GetVBDs(c.session, vm.VMRef); err == nil {
+				for _, _vbd := range _vmVBDs {
+					vbd := &VBDDescriptor{
+						VBDRef: _vbd,
+					}
+
+					if err := vbd.Query(c); err != nil {
+						return err
+					}
+					vmVBDs = append(vmVBDs, vbd)
+				}
+			} else {
+				return err
+			}
+
+			for _, vbd := range remove {
+				var vbdToRemove *VBDDescriptor
+				for _, candidate := range vmVBDs {
+					if candidate.UserDevice == vbd.UserDevice {
+						vbdToRemove = candidate
+						break
+					}
+				}
+				if vbdToRemove != nil {
+					log.Println(fmt.Sprintf("[DEBUG] Removing HDD %q", vbd.UUID))
+					if err := c.client.VBD.Destroy(c.session, vbdToRemove.VBDRef); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		var create []*VBDDescriptor
+		if create, err = readVBDsFromSchema(c, ns.Difference(os).List()); err == nil {
+			return err
+		}
+
+		if len(create) > 0 {
+			log.Println(fmt.Sprintf("[DEBUG] Will create %d HDDs", len(create)))
+			for _, hdd := range create {
+				hdd.VM = vm
+				if _, err := createVBD(c, hdd); err != nil {
+					return nil
+				}
+			}
+		}
+	}
+
 	dXenstoreDataRaw, ok := d.GetOk(vmSchemaXenstoreData)
 	if ok {
 		dXenstoreData := make(map[string]string)

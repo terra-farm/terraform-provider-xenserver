@@ -100,6 +100,7 @@ type VBDDescriptor struct {
 	VM *VMDescriptor
 	VDI *VDIDescriptor
 	Device string
+	UserDevice string
 	Mode xenAPI.VbdMode
 	Type xenAPI.VbdType
 	Bootable bool
@@ -447,6 +448,7 @@ func (this *VBDDescriptor) Query(c *Connection) error {
 	this.UUID = vbd.UUID
 	this.Type = vbd.Type
 	this.Device = vbd.Device
+	this.UserDevice = vbd.Userdevice
 	this.Bootable = vbd.Bootable
 	this.Mode = vbd.Mode
 
