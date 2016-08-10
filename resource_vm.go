@@ -676,7 +676,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 			for _, cdrom := range create {
 				cdrom.VM = vm
 				if _, err := createVBD(c, cdrom); err != nil {
-					return nil
+					return err
 				}
 			}
 		}
@@ -742,7 +742,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 			for _, hdd := range create {
 				hdd.VM = vm
 				if _, err := createVBD(c, hdd); err != nil {
-					return nil
+					return err
 				}
 			}
 		}
