@@ -27,7 +27,7 @@ import (
 const (
 	networkSchemaName                 = "name_label"
 	networkSchemaDescription          = "description"
-	networkSchemaPhysicalInterface    = "physical_interface"
+	networkSchemaBridge               = "bridge"
 	networkSchemaMTU                  = "mtu"
 )
 
@@ -50,16 +50,15 @@ func resourceNetwork() *schema.Resource {
 				Optional: true,
 			},
 
-			networkSchemaPhysicalInterface    : &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Elem: &schema.Schema{Type: schema.TypeString},
-				Set: schema.HashString,
-			},
-
 			networkSchemaMTU  : &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+			},
+
+			networkSchemaBridge  : &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 		},
@@ -73,23 +72,7 @@ func resourceNetworkCreate(d *schema.ResourceData, m interface{}) error {
 		NameLabel: d.Get(networkSchemaName).(string),
 		NameDescription: d.Get(networkSchemaDescription).(string),
 		MTU: d.Get(networkSchemaMTU).(int),
-	}
-
-	if _interfaces, ok := d.GetOk(networkSchemaPhysicalInterface); ok {
-		interfaces := _interfaces.(*schema.Set).List()
-		pifs := make([]xenAPI.PIFRef, len(interfaces));
-
-		for _, _interface := range interfaces {
-			_int := _interface.(string)
-
-			if pif, err := c.client.PIF.GetByUUID(c.session, _int); err == nil {
-				pifs = append(pifs, pif)
-			} else {
-				return err
-			}
-		}
-
-		networkRecord.PIFs = pifs
+		Bridge: d.Get(networkSchemaBridge).(string),
 	}
 
 	if networkRef, err := c.client.Network.Create(c.session, networkRecord); err == nil {
@@ -127,7 +110,7 @@ func resourceNetworkRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if err := d.Set(networkSchemaPhysicalInterface, network.Bridge); err != nil {
+	if err := d.Set(networkSchemaBridge, network.Bridge); err != nil {
 		return err
 	}
 
@@ -139,24 +122,6 @@ func resourceNetworkRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if pifs, err := c.client.Network.GetPIFs(c.session, network.NetworkRef); err == nil {
-		pifUUIDs := &schema.Set{}
-		pifUUIDs.F = schema.HashString
-
-		for _, pif := range pifs {
-			if pifRecord, err := c.client.PIF.GetRecord(c.session, pif); err == nil {
-				pifUUIDs.Add(pifRecord.UUID)
-			} else {
-				return err
-			}
-		}
-		if err := d.Set(networkSchemaPhysicalInterface, pifUUIDs); err != nil {
-			return err
-		}
-
-	} else {
-		return err
-	}
 
 	return nil
 }
