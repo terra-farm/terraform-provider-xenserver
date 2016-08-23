@@ -57,7 +57,7 @@ func resourceNetwork() *schema.Resource {
 
 			networkSchemaBridge  : &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
 			},
 
