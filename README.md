@@ -29,6 +29,12 @@ resource "xenserver_vdi" "vdi" {
   size = 1073741824 # 1GB
 }
 
+resource "xenserver_network" "net" {
+  name_label = "vm only network"
+  bridge = "xapi1"
+  description = "this will create VM-only network"
+}
+
 resource "xenserver_vm" "web" {
     name_label = "web"
     base_template_name = "<desired template>"
@@ -44,7 +50,7 @@ resource "xenserver_vm" "web" {
         device = 0
     }
     network_interface {
-        network_uuid = "<uuid>"
+        network_uuid = "${xenserver_network.net.id}"
         mtu = 1500
         device = 1
     }
@@ -93,3 +99,9 @@ VDI Resource Schema
   * size - size (in bytes)
   * shared (optional) - should this VDI be shared among multiple VMs, Default: *false*
   * read_only (optional) - is this VDI is read-only. Default: *false*
+
+Network Resource Schema:
+  * name_label - Network Name
+  * bridge - Bridge interface name
+  * description - Network description
+  * mtu - MTU
