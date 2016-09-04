@@ -87,6 +87,7 @@ Network interface schema:
   * mac - Desired mac address
   * mtu - MTU
   * device - interface order
+  * other_config - other configuration parameters map
 
 Block device schema:
   * vdi_uuid - UUID of connected VDI
