@@ -28,6 +28,7 @@ import (
 	"bytes"
 	"strings"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"sort"
 )
 
 const (
@@ -144,6 +145,26 @@ func vifHash(v interface{}) int {
 	b, _ = buf.WriteString(fmt.Sprintf("%d-", m["device"].(int)))
 	b, _ = buf.WriteString(fmt.Sprintf("%s-",
 		strings.ToLower(m["mac"].(string))))
+
+	if _otherConfig, ok := m[vifSchemaOtherConfig]; ok {
+		var otherConfig = _otherConfig.(map[string]string)
+
+		// Sort keys to guarantee order
+		var keys []string
+		for k, _ := range otherConfig {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		b, _ = buf.WriteRune('>')
+		for _, k := range keys {
+			b, _ = buf.WriteString(k)
+			b, _ = buf.WriteString(":")
+			b, _ = buf.WriteString(otherConfig[k])
+			b, _ = buf.WriteString(";")
+		}
+		b, _ = buf.WriteRune('<')
+	}
+
 	count += b
 	log.Println("Consumed total ", count, " bytes to generate hash")
 
