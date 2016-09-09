@@ -43,14 +43,17 @@ func resourceVLAN() *schema.Resource {
 			vlanSchemaTag: &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
+				ForceNew: true,
 			},
 
 			vlanSchemaPIF: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			vlanSchemaNetwork: &schema.Schema{
+				ForceNew: true,
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -132,7 +135,7 @@ func resourceVLANRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if err := d.Set(vlanSchemaPIF, vlan.Description); err != nil {
+	if err := d.Set(vlanSchemaPIF, vlan.UntaggedPIF); err != nil {
 		return err
 	}
 
@@ -149,34 +152,19 @@ func resourceVLANUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if d.HasChange(vlanSchemaTag) {
-		_, n := d.GetChange(vlanSchemaTag)
-
-		if err := c.client.VLAN.SetNameLabel(c.session, vlan.VLANRef, n.(string)); err != nil {
-			return err
-		}
-
-		d.SetPartial(vlanSchemaTag)
-	}
-
 	if d.HasChange(vlanSchemaOtherConfig) {
 		_, n := d.GetChange(vlanSchemaOtherConfig)
+		otherConfig := make(map[string]string)
 
-		if err := c.client.VLAN.SetMTU(c.session, vlan.VLANRef, n.(int)); err != nil {
+		for k, v := range n.(map[string]interface{}) {
+			otherConfig[k] = v.(string)
+		}
+
+		if err := c.client.VLAN.SetOtherConfig(c.session, vlan.VLANRef, otherConfig); err != nil {
 			return err
 		}
 
 		d.SetPartial(vlanSchemaOtherConfig)
-	}
-
-	if d.HasChange(vlanSchemaTaggedPIF) {
-		_, n := d.GetChange(vlanSchemaTaggedPIF)
-
-		if err := c.client.VLAN.SetNameDescription(c.session, vlan.VLANRef, n.(string)); err != nil {
-			return err
-		}
-
-		d.SetPartial(vlanSchemaTaggedPIF)
 	}
 
 	return nil
