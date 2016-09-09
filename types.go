@@ -110,6 +110,22 @@ type VBDDescriptor struct {
 	VBDRef xenAPI.VBDRef
 }
 
+type PIFDescriptor struct {
+	UUID string
+
+	PIFRef xenAPI.PIFRef
+}
+
+type VLANDescriptor struct {
+	UUID string
+	Tag int
+	TaggedPIF PIFDescriptor
+	UntaggedPIF PIFDescriptor
+	OtherConfig map[string]string
+
+	VLANRef xenAPI.VLANRef
+}
+
 func (this *NetworkDescriptor) Load(c *Connection) error {
 	var network xenAPI.NetworkRef
 
@@ -475,6 +491,91 @@ func (this *VBDDescriptor) Query(c *Connection) error {
 	}
 
 	this.VDI = vdi
+
+	return nil
+}
+
+func (this *PIFDescriptor) Load(c *Connection) error {
+	var pif xenAPI.PIFRef
+
+	if this.UUID != "" {
+		_vbd, err := c.client.PIF.GetByUUID(c.session, this.UUID)
+		if err != nil {
+			return err
+		}
+		pif = _vbd
+	} else {
+		return fmt.Errorf("Either %q or %q should be specified!", vbdSchemaUUID)
+	}
+
+	this.PIFRef = pif
+
+	return this.Query(c)
+}
+
+func (this *PIFDescriptor) Query(c *Connection) error {
+	pif, err := c.client.PIF.GetRecord(c.session, this.PIFRef)
+	if err != nil {
+		return err
+	}
+
+	this.UUID = pif.UUID
+
+	return nil
+}
+
+func (this *VLANDescriptor) Load(c *Connection) error {
+	var vlan xenAPI.VLANRef
+
+	if this.UUID != "" {
+		_vbd, err := c.client.VLAN.GetByUUID(c.session, this.UUID)
+		if err != nil {
+			return err
+		}
+		vlan = _vbd
+	} else {
+		return fmt.Errorf("Either %q or %q should be specified!", vbdSchemaUUID)
+	}
+
+	this.VLANRef = vlan
+
+	return this.Query(c)
+}
+
+func (this *VLANDescriptor) Query(c *Connection) error {
+	vlan, err := c.client.VLAN.GetRecord(c.session, this.VLANRef)
+	if err != nil {
+		return err
+	}
+
+	this.UUID = vlan.UUID
+	this.Tag = vlan.Tag
+	this.OtherConfig = vlan.OtherConfig
+
+	if vlan.TaggedPIF != "" {
+		var taggedPif = PIFDescriptor{
+			PIFRef: vlan.TaggedPIF,
+		}
+
+		err := taggedPif.Query(c)
+		if err != nil {
+			return err
+		}
+		this.TaggedPIF = taggedPif
+	}
+
+	if vlan.UntaggedPIF != "" {
+		var untaggedPif = PIFDescriptor{
+			PIFRef: vlan.UntaggedPIF,
+		}
+
+		err := untaggedPif.Query(c)
+		if err != nil {
+			return err
+		}
+		this.UntaggedPIF = untaggedPif
+	}
+
 
 	return nil
 }
