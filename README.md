@@ -1,6 +1,6 @@
 # Terraform provider for XenServer
-[![GitHub release](http://img.shields.io/github/release/meltwater/terraform-provider-xenserver.svg)](https://github.com/meltwater/terraform-provider-xenserver/releases)
-[![Travis CI](https://img.shields.io/travis/meltwater/terraform-provider-xenserver/master.svg)](https://travis-ci.org/meltwater/terraform-provider-xenserver)
+[![GitHub release](http://img.shields.io/github/release/amfranz/terraform-provider-xenserver.svg)](https://github.com/amfranz/terraform-provider-xenserver/releases)
+[![Travis CI](https://img.shields.io/travis/amfranz/terraform-provider-xenserver/master.svg)](https://travis-ci.org/amfranz/terraform-provider-xenserver)
 
 ## Usage
 
