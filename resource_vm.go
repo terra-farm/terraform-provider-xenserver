@@ -1,16 +1,49 @@
+/*
+ * The MIT License (MIT)
+ * Copyright (c) 2016 Michael Franz Aigner <maigner@updox.com>
+ * Copyright (c) 2016 Maksym Borodin <borodin.maksym@gmail.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+ * documentation files (the "Software"), to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+ * and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions
+ * of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+ * THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
 package main
 
 import (
 	"fmt"
-	"github.com/amfranz/go-xen-api-client"
+	"github.com/mborodin/go-xen-api-client"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strings"
+	"strconv"
+	"log"
 )
 
 const (
-	vmSchemaNameLabel        = "name_label"
-	vmSchemaBaseTemplateName = "base_template_name"
-	vmSchemaXenstoreData     = "xenstore_data"
+	vmSchemaNameLabel                 = "name_label"
+	vmSchemaBaseTemplateName          = "base_template_name"
+	vmSchemaStaticMemoryMin           = "static_mem_min"
+	vmSchemaStaticMemoryMax           = "static_mem_max"
+	vmSchemaDynamicMemoryMin          = "dynamic_mem_min"
+	vmSchemaDynamicMemoryMax          = "dynamic_mem_max"
+	vmSchemaBootOrder                 = "boot_order"
+	vmSchemaNetworkInterfaces         = "network_interface"
+	vmSchemaHardDrive                 = "hard_drive"
+	vmSchemaCdRom                     = "cdrom"
+	vmSchemaBootParameters            = "boot_parameters"
+	vmSchemaInstallationMediaType     = "installation_media_type"
+	vmSchemaInstallationMediaLocation = "installation_media_location"
+	vmSchemaVcpus                     = "vcpus"
+	vmSchemaCoresPerSocket            = "cores_per_socket"
+	vmSchemaXenstoreData              = "xenstore_data"
 )
 
 const xenstoreVMDataPrefix = "vm-data/"
@@ -38,6 +71,79 @@ func resourceVM() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
+
+			vmSchemaStaticMemoryMin: &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+			},
+
+			vmSchemaStaticMemoryMax: &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+			},
+
+			vmSchemaDynamicMemoryMin: &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+			},
+
+			vmSchemaDynamicMemoryMax: &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+			},
+
+			vmSchemaBootOrder: &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default: "dc",
+			},
+
+			vmSchemaNetworkInterfaces: &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: resourceVIF(),
+				Set: vifHash,
+			},
+
+			vmSchemaHardDrive: &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: resourceVBD(),
+				Set: vbdHash,
+			},
+
+			vmSchemaCdRom: &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: resourceVBD(),
+				Set: vbdHash,
+			},
+
+			vmSchemaBootParameters: &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			vmSchemaInstallationMediaType: &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			vmSchemaInstallationMediaLocation: &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			vmSchemaVcpus: &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+			},
+
+			vmSchemaCoresPerSocket: &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
 		},
 	}
 }
@@ -88,35 +194,130 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	xenUUID, err := c.client.VM.GetUUID(c.session, xenVM)
-	if err != nil {
+	vm := &VMDescriptor{
+		VMRef: xenVM,
+	}
+
+	if err = vm.Query(c); err != nil {
 		return err
 	}
 
-	d.SetId(xenUUID)
+	// Memory configuration
+	mem, ok := d.GetOk(vmSchemaStaticMemoryMin)
+	if ok {
+		vm.StaticMemory.Min = mem.(int)
+	}
+
+	mem, ok = d.GetOk(vmSchemaStaticMemoryMax)
+	if ok {
+		vm.StaticMemory.Max = mem.(int)
+	}
+
+	mem, ok = d.GetOk(vmSchemaDynamicMemoryMin)
+	if ok {
+		vm.DynamicMemory.Min = mem.(int)
+	}
+
+	mem, ok = d.GetOk(vmSchemaDynamicMemoryMax)
+	if ok {
+		vm.DynamicMemory.Max = mem.(int)
+	}
+
+	if err=vm.UpdateMemory(c); err != nil {
+		return err
+	}
+
+	// Set VCPUs number
+	vm.VCPUCount = d.Get(vmSchemaVcpus).(int)
+	if err = vm.UpdateVCPUs(c); err != nil {
+		return err
+	}
+
+	d.SetId(vm.UUID)
 
 	dXenstoreDataRaw, ok := d.GetOk(vmSchemaXenstoreData)
 	if ok {
-		dXenstoreData := make(map[string]string)
+		vm.XenstoreData = make(map[string]string)
 		for key, value := range dXenstoreDataRaw.(map[string]interface{}) {
-			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
+			vm.XenstoreData[key] = value.(string)
 		}
 
-		err = c.client.VM.SetXenstoreData(c.session, xenVM, dXenstoreData)
+		err = c.client.VM.SetXenstoreData(c.session, vm.VMRef, vm.XenstoreData)
 		if err != nil {
 			return err
 		}
 	}
 
+	log.Println("[DEBUG] VM Power State: ", vm.PowerState)
+
+	var vifs []*VIFDescriptor
+
+	if vifs, err = readVIFsFromSchema(c, d.Get(vmSchemaNetworkInterfaces).(*schema.Set).List()); err != nil {
+		return err
+	}
+
+	for _, vif := range vifs {
+		vif.VM = vm
+		if vif, err = createVIF(c, vif); err != nil {
+			log.Println("[ERROR] ", err)
+			return err
+		}
+	}
+
+	log.Println("[DEBUG] Creating CDs")
+	if err = createVBDs(c, d.Get(vmSchemaCdRom).(*schema.Set).List(), xenAPI.VbdTypeCD, vm); err != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+
+	log.Println("[DEBUG] Creating HDDs")
+	if err = createVBDs(c, d.Get(vmSchemaHardDrive).(*schema.Set).List(), xenAPI.VbdTypeDisk, vm); err != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+
+	if _order, ok := d.GetOk(vmSchemaBootOrder); ok {
+		order := _order.(string)
+		vm.HVMBootParameters["order"] = order
+	}
+
+	if err = c.client.VM.SetHVMBootParams(c.session, vm.VMRef, vm.HVMBootParameters); err != nil {
+		return err
+	}
+
+	if _coresPerSocket, ok := d.GetOk(vmSchemaCoresPerSocket); ok {
+		coresPerSocket := _coresPerSocket.(int)
+
+		if vm.VCPUCount % coresPerSocket != 0 {
+			return fmt.Errorf("%d cores could not fit to %d cores-per-socket topology", vm.VCPUCount, coresPerSocket)
+		}
+
+		vm.Platform["cores-per-socket"] = strconv.Itoa(coresPerSocket)
+	}
+
+	if err = c.client.VM.SetPlatform(c.session, vm.VMRef, vm.Platform); err != nil {
+		return err
+	}
+
+	log.Println("[DEBUG] Provisioning VM")
 	err = c.client.VM.Provision(c.session, xenVM)
 	if err != nil {
 		return err
 	}
 
+	// reset template flag
+	if vm.IsATemplate {
+		if err = c.client.VM.SetIsATemplate(c.session, vm.VMRef, false); err != nil {
+			return err
+		}
+	}
+
+	log.Println("[DEBUG] Starting VM")
 	err = c.client.VM.Start(c.session, xenVM, false, false)
 	if err != nil {
 		return err
 	}
+	log.Println("[DEBUG] Done")
 
 	return nil
 }
@@ -124,8 +325,10 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
-	xenVM, err := c.client.VM.GetByUUID(c.session, d.Id())
-	if err != nil {
+	vm := &VMDescriptor{
+		UUID: d.Id(),
+	}
+	if err := vm.Load(c); err != nil {
 		if xenErr, ok := err.(*xenAPI.Error); ok {
 			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
 				d.SetId("")
@@ -136,17 +339,12 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vmRecord, err := c.client.VM.GetRecord(c.session, xenVM)
+	err := d.Set(vmSchemaNameLabel, vm.Name)
 	if err != nil {
 		return err
 	}
 
-	err = d.Set(vmSchemaNameLabel, vmRecord.NameLabel)
-	if err != nil {
-		return err
-	}
-
-	vmBaseTemplateName, ok := vmRecord.OtherConfig["base_template_name"]
+	vmBaseTemplateName, ok := vm.OtherConfig["base_template_name"]
 	if ok {
 		err = d.Set(vmSchemaBaseTemplateName, vmBaseTemplateName)
 		if err != nil {
@@ -154,16 +352,120 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
-	vmXenstoreData := make(map[string]string)
-	for key, value := range vmRecord.XenstoreData {
-		if strings.HasPrefix(key, xenstoreVMDataPrefix) {
-			vmXenstoreData[key[len(xenstoreVMDataPrefix):]] = value
+	err = d.Set(vmSchemaXenstoreData, vm.XenstoreData)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaVcpus, vm.VCPUCount)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaStaticMemoryMax, vm.StaticMemory.Max)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaStaticMemoryMin, vm.StaticMemory.Min)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaDynamicMemoryMax, vm.DynamicMemory.Max)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set(vmSchemaDynamicMemoryMin, vm.DynamicMemory.Min)
+	if err != nil {
+		return err
+	}
+
+	vmVifs, err := c.client.VM.GetVIFs(c.session, vm.VMRef)
+	if err != nil {
+		return err
+	}
+
+	vifs := make([]map[string]interface{}, 0, len(vmVifs))
+	log.Println(fmt.Sprintf("[DEBUG] Got %d VIFs", len(vmVifs)))
+
+	for _, _vif := range vmVifs {
+		vif := VIFDescriptor{
+			VIFRef: _vif,
+		}
+
+		if err := vif.Query(c); err != nil {
+			return err
+		}
+
+		log.Println("[DEBUG] Found VIF", vif.UUID)
+		vifData := fillVIFSchema(vif)
+		log.Println("[DEBUG] VIF: ", vifData)
+
+		vifs = append(vifs, vifData)
+	}
+	err = d.Set(vmSchemaNetworkInterfaces, vifs)
+	if err != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+
+	vmVBDs, err := c.client.VM.GetVBDs(c.session, vm.VMRef)
+	if err != nil {
+		return err
+	}
+
+	hdd := make([]map[string]interface{}, 0, len(vmVBDs))
+	cdrom := make([]map[string]interface{}, 0, len(vmVBDs))
+	log.Println(fmt.Sprintf("[DEBUG] Got %d VDIs", len(vmVBDs)))
+
+	for _, _vbd := range vmVBDs {
+		vbd := VBDDescriptor{
+			VBDRef: _vbd,
+		}
+
+		if err := vbd.Query(c); err != nil {
+			return err
+		}
+
+		log.Println("[DEBUG] Found VBD", vbd.UUID)
+		vbdData := fillVBDSchema(vbd)
+		log.Println("[DEBUG] VBD: ", vbdData)
+
+		switch vbd.Type {
+		case xenAPI.VbdTypeCD:
+			cdrom = append(cdrom, vbdData)
+			break;
+		case xenAPI.VbdTypeDisk:
+			hdd = append(hdd, vbdData)
+		default:
+			return fmt.Errorf("Unsupported VBD type %q", string(vbd.Type))
+		}
+	}
+	err = d.Set(vmSchemaHardDrive, hdd)
+	if err != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+	err = d.Set(vmSchemaCdRom, cdrom)
+	if err != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+
+	log.Println("[DEBUG] Query boot order")
+	if order, ok := vm.HVMBootParameters["order"]; ok {
+		if err := d.Set(vmSchemaBootOrder, order); err != nil {
+			return err;
 		}
 	}
 
-	err = d.Set(vmSchemaXenstoreData, vmXenstoreData)
-	if err != nil {
-		return err
+	if cps, ok := vm.Platform["cores-per-socket"]; ok {
+		coresPerSocket, _ := strconv.Atoi(cps)
+		if err := d.Set(vmSchemaCoresPerSocket, coresPerSocket); err != nil {
+			return err;
+		}
 	}
 
 	return nil
@@ -172,8 +474,10 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
-	xenVM, err := c.client.VM.GetByUUID(c.session, d.Id())
-	if err != nil {
+	vm := &VMDescriptor{
+		UUID: d.Id(),
+	}
+	if err := vm.Load(c); err != nil {
 		if xenErr, ok := err.(*xenAPI.Error); ok {
 			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
 				d.SetId("")
@@ -184,21 +488,264 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vmRecord, err := c.client.VM.GetRecord(c.session, xenVM)
-	if err != nil {
-		return err
-	}
-
 	d.Partial(true)
 
-	dNameLabel := d.Get(vmSchemaNameLabel).(string)
-	if vmRecord.NameLabel != dNameLabel {
-		err := c.client.VM.SetNameLabel(c.session, xenVM, dNameLabel)
-		if err != nil {
+	if d.HasChange(vmSchemaNameLabel) {
+		_, _dNameLabel := d.GetChange(vmSchemaNameLabel)
+		dNameLabel := _dNameLabel.(string)
+		if err := c.client.VM.SetNameLabel(c.session, vm.VMRef, dNameLabel); err != nil {
 			return err
 		}
 
 		d.SetPartial(vmSchemaNameLabel)
+	}
+
+	updatedFields := make([]string, 0, 5)
+	updateMemory := false
+
+	if d.HasChange(vmSchemaStaticMemoryMax) {
+		mem := d.Get(vmSchemaStaticMemoryMax).(int)
+		vm.StaticMemory.Max = mem
+		updateMemory = true
+		updatedFields = append(updatedFields, vmSchemaStaticMemoryMax)
+	}
+
+	if d.HasChange(vmSchemaStaticMemoryMin) {
+		mem := d.Get(vmSchemaStaticMemoryMin).(int)
+		vm.StaticMemory.Min = mem
+		updateMemory = true
+		updatedFields = append(updatedFields, vmSchemaStaticMemoryMin)
+	}
+
+	if d.HasChange(vmSchemaDynamicMemoryMax) {
+		mem := d.Get(vmSchemaDynamicMemoryMax).(int)
+		vm.DynamicMemory.Max = mem
+		updateMemory = true
+		updatedFields = append(updatedFields, vmSchemaDynamicMemoryMax)
+	}
+
+	if d.HasChange(vmSchemaDynamicMemoryMin) {
+		mem := d.Get(vmSchemaDynamicMemoryMin).(int)
+		vm.DynamicMemory.Min = mem
+		updateMemory = true
+		updatedFields = append(updatedFields, vmSchemaDynamicMemoryMin)
+	}
+
+	if updateMemory {
+		if err := vm.UpdateMemory(c); err != nil {
+			return err
+		}
+
+		for _, f := range updatedFields {
+			d.SetPartial(f)
+		}
+	}
+
+	if d.HasChange(vmSchemaVcpus) {
+		_, vcpus := d.GetChange(vmSchemaVcpus)
+		vm.VCPUCount = vcpus.(int)
+		if err := vm.UpdateVCPUs(c); err != nil {
+			return err
+		}
+		d.SetPartial(vmSchemaVcpus)
+	}
+
+	if d.HasChange(vmSchemaNetworkInterfaces) {
+		o, n := d.GetChange(vmSchemaNetworkInterfaces)
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		var err error
+		var remove []*VIFDescriptor
+		if remove, err = readVIFsFromSchema(c, os.Difference(ns).List()); err == nil {
+			return err
+		}
+
+		if len(remove) > 0 {
+
+			log.Println(fmt.Sprintf("[DEBUG] Got %d VIFs to remove", len(remove)))
+
+			var vmVifs []*VIFDescriptor
+			if _vmVifs, err := c.client.VM.GetVIFs(c.session, vm.VMRef); err == nil {
+				for _, _vif := range _vmVifs {
+					vif := &VIFDescriptor{
+						VIFRef: _vif,
+					}
+
+					if err := vif.Query(c); err != nil {
+						return err
+					}
+					vmVifs = append(vmVifs, vif)
+				}
+			} else {
+				return err
+			}
+
+			for _, vif := range remove {
+				var vifToRemove *VIFDescriptor
+				for _, candidate := range vmVifs {
+					if candidate.Network.UUID == vif.Network.UUID && candidate.DeviceOrder == vif.DeviceOrder {
+						vifToRemove = candidate
+						break
+					}
+				}
+				if vifToRemove != nil {
+					log.Println(fmt.Sprintf("[DEBUG] Removing VIF %q", vif.UUID))
+					if err := c.client.VIF.Destroy(c.session, vifToRemove.VIFRef); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		var create []*VIFDescriptor
+		if create, err = readVIFsFromSchema(c, ns.Difference(os).List()); err == nil {
+			return err
+		}
+
+		if len(create) > 0 {
+			log.Println(fmt.Sprintf("[DEBUG] Will create %d VIFs", len(create)))
+			for _, vif := range create {
+				vif.VM = vm
+				if _, err := createVIF(c, vif); err != nil {
+					return nil
+				}
+			}
+		}
+
+	}
+
+	if d.HasChange(vmSchemaCdRom) {
+		o, n := d.GetChange(vmSchemaCdRom)
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		var err error
+		var remove []*VBDDescriptor
+		if remove, err = readVBDsFromSchema(c, os.Difference(ns).List()); err == nil {
+			return err
+		}
+
+
+		if len(remove) > 0 {
+
+			log.Println(fmt.Sprintf("[DEBUG] Got %d cdroms to remove", len(remove)))
+
+			var vmVBDs []*VBDDescriptor
+			if _vmVBDs, err := c.client.VM.GetVBDs(c.session, vm.VMRef); err == nil {
+				for _, _vbd := range _vmVBDs {
+					vbd := &VBDDescriptor{
+						VBDRef: _vbd,
+					}
+
+					if err := vbd.Query(c); err != nil {
+						return err
+					}
+					vmVBDs = append(vmVBDs, vbd)
+				}
+			} else {
+				return err
+			}
+
+			for _, vbd := range remove {
+				var vbdToRemove *VBDDescriptor
+				for _, candidate := range vmVBDs {
+					if candidate.UserDevice == vbd.UserDevice {
+						vbdToRemove = candidate
+						break
+					}
+				}
+				if vbdToRemove != nil {
+					log.Println(fmt.Sprintf("[DEBUG] Removing cdrom %q", vbd.UUID))
+					if err := c.client.VBD.Destroy(c.session, vbdToRemove.VBDRef); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		var create []*VBDDescriptor
+		if create, err = readVBDsFromSchema(c, ns.Difference(os).List()); err == nil {
+			return err
+		}
+
+		if len(create) > 0 {
+			log.Println(fmt.Sprintf("[DEBUG] Will create %d cdroms", len(create)))
+			for _, cdrom := range create {
+				cdrom.VM = vm
+				if _, err := createVBD(c, cdrom); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if d.HasChange(vmSchemaHardDrive) {
+		o, n := d.GetChange(vmSchemaHardDrive)
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		var err error
+		var remove []*VBDDescriptor
+		if remove, err = readVBDsFromSchema(c, os.Difference(ns).List()); err == nil {
+			return err
+		}
+
+
+		if len(remove) > 0 {
+
+			log.Println(fmt.Sprintf("[DEBUG] Got %d HDDs to remove", len(remove)))
+
+			var vmVBDs []*VBDDescriptor
+			if _vmVBDs, err := c.client.VM.GetVBDs(c.session, vm.VMRef); err == nil {
+				for _, _vbd := range _vmVBDs {
+					vbd := &VBDDescriptor{
+						VBDRef: _vbd,
+					}
+
+					if err := vbd.Query(c); err != nil {
+						return err
+					}
+					vmVBDs = append(vmVBDs, vbd)
+				}
+			} else {
+				return err
+			}
+
+			for _, vbd := range remove {
+				var vbdToRemove *VBDDescriptor
+				for _, candidate := range vmVBDs {
+					if candidate.UserDevice == vbd.UserDevice {
+						vbdToRemove = candidate
+						break
+					}
+				}
+				if vbdToRemove != nil {
+					log.Println(fmt.Sprintf("[DEBUG] Removing HDD %q", vbd.UUID))
+					if err := c.client.VBD.Destroy(c.session, vbdToRemove.VBDRef); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		var create []*VBDDescriptor
+		if create, err = readVBDsFromSchema(c, ns.Difference(os).List()); err == nil {
+			return err
+		}
+
+		if len(create) > 0 {
+			log.Println(fmt.Sprintf("[DEBUG] Will create %d HDDs", len(create)))
+			for _, hdd := range create {
+				hdd.VM = vm
+				if _, err := createVBD(c, hdd); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	dXenstoreDataRaw, ok := d.GetOk(vmSchemaXenstoreData)
@@ -208,12 +755,40 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
 		}
 
-		err = c.client.VM.SetXenstoreData(c.session, xenVM, dXenstoreData)
-		if err != nil {
+		if err := c.client.VM.SetXenstoreData(c.session, vm.VMRef, dXenstoreData); err != nil {
 			return err
 		}
 
 		d.SetPartial(vmSchemaXenstoreData)
+	}
+
+	if d.HasChange(vmSchemaBootOrder) {
+		_, n := d.GetChange(vmSchemaBootOrder)
+		order := n.(string)
+		vm.HVMBootParameters["order"] = order
+
+		if err := c.client.VM.SetHVMBootParams(c.session, vm.VMRef, vm.HVMBootParameters); err != nil {
+			return err
+		}
+
+		d.SetPartial(vmSchemaBootOrder)
+	}
+
+	if d.HasChange(vmSchemaCoresPerSocket) {
+		_, n := d.GetChange(vmSchemaCoresPerSocket)
+		coresPerSocket := n.(int)
+
+		if vm.VCPUCount % coresPerSocket != 0 {
+			return fmt.Errorf("%d cores could not fit to %d cores-per-socket topology", vm.VCPUCount, coresPerSocket)
+		}
+
+		vm.Platform["cores-per-socket"] = strconv.Itoa(coresPerSocket)
+
+		if err := c.client.VM.SetPlatform(c.session, vm.VMRef, vm.Platform); err != nil {
+			return err
+		}
+
+		d.SetPartial(vmSchemaCoresPerSocket)
 	}
 
 	d.Partial(false)
@@ -224,8 +799,10 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
-	xenVM, err := c.client.VM.GetByUUID(c.session, d.Id())
-	if err != nil {
+	vm := VMDescriptor{
+		UUID: d.Id(),
+	}
+	if err := vm.Load(c); err != nil {
 		if xenErr, ok := err.(*xenAPI.Error); ok {
 			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
 				d.SetId("")
@@ -236,20 +813,24 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	powerState, err := c.client.VM.GetPowerState(c.session, xenVM)
-	if err != nil {
-		return err
-	}
-
-	if powerState == xenAPI.VMPowerStateRunning {
-		err = c.client.VM.HardShutdown(c.session, xenVM)
-		if err != nil {
+	if vm.PowerState == xenAPI.VMPowerStateRunning {
+		if err := c.client.VM.HardShutdown(c.session, vm.VMRef);  err != nil {
 			return err
 		}
 	}
 
-	err = c.client.VM.Destroy(c.session, xenVM)
+	vifs, err := c.client.VM.GetVIFs(c.session, vm.VMRef)
 	if err != nil {
+		return err
+	}
+
+	for _, vif := range vifs {
+		if err := c.client.VIF.Destroy(c.session, vif); err != nil {
+			return err
+		}
+	}
+
+	if err := c.client.VM.Destroy(c.session, vm.VMRef); err != nil {
 		return err
 	}
 
