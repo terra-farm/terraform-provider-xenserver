@@ -352,7 +352,7 @@ func (this *SRDescriptor) Load(c *Connection) error {
 	}
 
 	if !hasSRName && !hasSRUUID {
-		return fmt.Errorf("Either %q or %q should be specified!", srSchemaUUID)
+		return fmt.Errorf("Either %q or %q should be specified!", srSchemaName, srSchemaUUID)
 	}
 
 	this.SRRef = sr
@@ -452,7 +452,7 @@ func (this *VBDDescriptor) Load(c *Connection) error {
 		}
 		vbd = _vbd
 	} else {
-		return fmt.Errorf("Either %q or %q should be specified!", vbdSchemaUUID)
+		return fmt.Errorf("%q should be specified!", vbdSchemaUUID)
 	}
 
 	this.VBDRef = vbd
@@ -506,7 +506,7 @@ func (this *PIFDescriptor) Load(c *Connection) error {
 		}
 		pif = _vbd
 	} else {
-		return fmt.Errorf("Either %q or %q should be specified!", vbdSchemaUUID)
+		return fmt.Errorf("%q should be specified!", vbdSchemaUUID)
 	}
 
 	this.PIFRef = pif
@@ -535,7 +535,7 @@ func (this *VLANDescriptor) Load(c *Connection) error {
 		}
 		vlan = _vbd
 	} else {
-		return fmt.Errorf("Either %q or %q should be specified!", vbdSchemaUUID)
+		return fmt.Errorf("%q should be specified!", vbdSchemaUUID)
 	}
 
 	this.VLANRef = vlan
