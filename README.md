@@ -2,6 +2,10 @@
 [![GitHub release](http://img.shields.io/github/release/amfranz/terraform-provider-xenserver.svg)](https://github.com/amfranz/terraform-provider-xenserver/releases)
 [![Travis CI](https://img.shields.io/travis/amfranz/terraform-provider-xenserver/master.svg)](https://travis-ci.org/amfranz/terraform-provider-xenserver)
 
+<div style="border: 2px solid #AAF; padding:10px; border-radius:5px; background-color: #EEF ">
+This has been updated to work with Terraform v.0.9.8
+</div>
+
 ## Usage
 
 ### Provider Configuration
