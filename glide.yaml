@@ -1,4 +1,0 @@
-package: github.com/meltwater/terraform-provider-xenserver
-import:
-- package: github.com/amfranz/go-xen-api-client
-- package: github.com/hashicorp/terraform
