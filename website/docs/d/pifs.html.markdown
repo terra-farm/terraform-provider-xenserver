@@ -13,12 +13,6 @@ Provides information about the physical network interfaces (PIF) of a XenServer 
 ## Example Usage
 
 ```hcl
-variable "host_uuid" {
-  type = "string"
-  default = ""
-}
-
 data "xenserver_pifs" "interfaces" {
-  host = "${var.host_uuid}"
 }
 ```

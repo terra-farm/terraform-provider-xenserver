@@ -6,14 +6,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func dataSourceXenserverPifs() *schema.Resource {
+func dataSourceXenServerPifs() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceXenServerPifsRead,
 		Schema: map[string]*schema.Schema{
-			// "host": {
-			// 	Type:     schema.TypeString,
-			// 	Optional: false,
-			// },
 			"uuids": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
