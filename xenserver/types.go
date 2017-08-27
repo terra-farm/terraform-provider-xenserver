@@ -16,13 +16,14 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
-package main
+package xenserver
 
 import (
 	"fmt"
-	"github.com/mborodin/go-xen-api-client"
 	"log"
 	"strconv"
+
+	"github.com/mborodin/go-xen-api-client"
 )
 
 type Range struct {

@@ -1,17 +1,26 @@
-language: go
+dist: trusty
 sudo: false
+language: go
+go:
+  - 1.8.1
 os:
   - linux
   - osx
-go:
-  - 1.8
 
-# Deploy executables to Github release tags
-deploy:
-  provider: releases
-  api_key:
-    secure: EcPpctVWhON3hNRqznCptwXHuEO4OVWlvVo2Jq4AJ6DGgZ7niNAgxyOQpKq4u2C0hRJVCyp9O3dxqLtnuNObnKP+moillqqu0tm4EohBWmzVuLc9FQWWazv4VXi/685cNpYUVYeuPzSPCleqsOHiVIZ1bQtdG/Ax5EzHNf3/ZI3z05q9cHavjb4TYF9FxIy7QdcbHtu4N1NX35XPmlhk65iPC/0SCvm14djipOXeaL07fklX5e1kTiwLybyIbBYVkHHYwHAJPb0aC0U4fR8cYxDv+0zQEll14kxdjoEv93PosX9eqFqr0Pv4XFKNrdqerqqDQRJDYy13LSZ4dSt3fnO27kK+iGaWqRAJhbCUBqY27VyOw8BXX4ng6K9ypki2FYXQsHAmHkwBBYG2KjKG7wxWVkB4JVxMGXAqOaZN/ukrdOMcwfErpbOnthrZRmpIDHN2O9K1gwsj8wdfg7aSynmEd+WvYa4S7V22+Z6PYK3UUUROzaN5fgtH+8dIIQcwuR6bye7HK23Ck33mg5YTkFRCph+NP9o0ccEZBT0/KYRj6tWd/j3wkTJypDpttRHKkE11mrEHIm5kbsRyGDZVjOlrtK0Vu1vX1IeS+4dB4Ekecma7BHK4L04BaIfdGogpnOPT9jHz8F7saQGCyK6/4FheV/05DZSNOPat6ZHKGPE=
-  file: "terraform-provider-xenserver-$(uname -s)-$(uname -m)"
-  skip_cleanup: true
-  on:
-    tags: true
+install:
+# This script is used by the Travis build to install a cookie for
+# go.googlesource.com so rate limits are higher when using `go get` to fetch
+# packages that live there.
+# See: https://github.com/golang/go/issues/12933
+- bash scripts/gogetcookie.sh
+- go get github.com/kardianos/govendor
+
+script:
+- make test
+- make vendor-status
+- make vet
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  - go: tip

@@ -1,4 +1,4 @@
-package main
+package xenserver
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"

@@ -1,4 +1,4 @@
-package main
+package xenserver
 
 import (
 	"github.com/mborodin/go-xen-api-client"

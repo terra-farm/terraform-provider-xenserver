@@ -17,7 +17,7 @@
  * IN THE SOFTWARE.
  */
 
-package main
+package xenserver
 
 import (
 	"bytes"
