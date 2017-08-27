@@ -21,10 +21,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/mborodin/go-xen-api-client"
 	"github.com/hashicorp/terraform/helper/schema"
-	"strconv"
+	"github.com/mborodin/go-xen-api-client"
 	"log"
+	"strconv"
 )
 
 const (
@@ -95,28 +95,28 @@ func resourceVM() *schema.Resource {
 			vmSchemaBootOrder: &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default: "dc",
+				Default:  "dc",
 			},
 
 			vmSchemaNetworkInterfaces: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: resourceVIF(),
-				Set: vifHash,
+				Elem:     resourceVIF(),
+				Set:      vifHash,
 			},
 
 			vmSchemaHardDrive: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: resourceVBD(),
-				Set: vbdHash,
+				Elem:     resourceVBD(),
+				Set:      vbdHash,
 			},
 
 			vmSchemaCdRom: &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem: resourceVBD(),
-				Set: vbdHash,
+				Elem:     resourceVBD(),
+				Set:      vbdHash,
 			},
 
 			vmSchemaBootParameters: &schema.Schema{
@@ -143,7 +143,6 @@ func resourceVM() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-
 		},
 	}
 }
@@ -223,7 +222,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		vm.DynamicMemory.Max = mem.(int)
 	}
 
-	if err=vm.UpdateMemory(c); err != nil {
+	if err = vm.UpdateMemory(c); err != nil {
 		return err
 	}
 
@@ -288,7 +287,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	if _coresPerSocket, ok := d.GetOk(vmSchemaCoresPerSocket); ok {
 		coresPerSocket := _coresPerSocket.(int)
 
-		if vm.VCPUCount % coresPerSocket != 0 {
+		if vm.VCPUCount%coresPerSocket != 0 {
 			return fmt.Errorf("%d cores could not fit to %d cores-per-socket topology", vm.VCPUCount, coresPerSocket)
 		}
 
@@ -436,7 +435,7 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		switch vbd.Type {
 		case xenAPI.VbdTypeCD:
 			cdrom = append(cdrom, vbdData)
-			break;
+			break
 		case xenAPI.VbdTypeDisk:
 			hdd = append(hdd, vbdData)
 		default:
@@ -457,14 +456,14 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 	log.Println("[DEBUG] Query boot order")
 	if order, ok := vm.HVMBootParameters["order"]; ok {
 		if err := d.Set(vmSchemaBootOrder, order); err != nil {
-			return err;
+			return err
 		}
 	}
 
 	if cps, ok := vm.Platform["cores-per-socket"]; ok {
 		coresPerSocket, _ := strconv.Atoi(cps)
 		if err := d.Set(vmSchemaCoresPerSocket, coresPerSocket); err != nil {
-			return err;
+			return err
 		}
 	}
 
@@ -628,7 +627,6 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 			return err
 		}
 
-
 		if len(remove) > 0 {
 
 			log.Println(fmt.Sprintf("[DEBUG] Got %d cdroms to remove", len(remove)))
@@ -693,7 +691,6 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		if remove, err = readVBDsFromSchema(c, os.Difference(ns).List()); err == nil {
 			return err
 		}
-
 
 		if len(remove) > 0 {
 
@@ -778,7 +775,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		_, n := d.GetChange(vmSchemaCoresPerSocket)
 		coresPerSocket := n.(int)
 
-		if vm.VCPUCount % coresPerSocket != 0 {
+		if vm.VCPUCount%coresPerSocket != 0 {
 			return fmt.Errorf("%d cores could not fit to %d cores-per-socket topology", vm.VCPUCount, coresPerSocket)
 		}
 
@@ -814,7 +811,7 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if vm.PowerState == xenAPI.VMPowerStateRunning {
-		if err := c.client.VM.HardShutdown(c.session, vm.VMRef);  err != nil {
+		if err := c.client.VM.HardShutdown(c.session, vm.VMRef); err != nil {
 			return err
 		}
 	}

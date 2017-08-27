@@ -25,11 +25,11 @@ import (
 )
 
 const (
-	vdiSchemaUUID                 = "sr_uuid"
-	vdiSchemaName                 = "name_label"
-	vdiSchemaShared               = "shared"
-	vdiSchemaRO                   = "read_only"
-	vdiSchemaSize                 = "size"
+	vdiSchemaUUID   = "sr_uuid"
+	vdiSchemaName   = "name_label"
+	vdiSchemaShared = "shared"
+	vdiSchemaRO     = "read_only"
+	vdiSchemaSize   = "size"
 )
 
 func resourceVDI() *schema.Resource {
@@ -41,13 +41,13 @@ func resourceVDI() *schema.Resource {
 		Exists: resourceVDIExists,
 
 		Schema: map[string]*schema.Schema{
-			vdiSchemaUUID  : &schema.Schema{
+			vdiSchemaUUID: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			vdiSchemaName  : &schema.Schema{
+			vdiSchemaName: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -55,20 +55,19 @@ func resourceVDI() *schema.Resource {
 			vdiSchemaShared: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default: false,
+				Default:  false,
 			},
 
-			vdiSchemaRO    : &schema.Schema{
+			vdiSchemaRO: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default: false,
+				Default:  false,
 			},
 
-			vdiSchemaSize  : &schema.Schema{
+			vdiSchemaSize: &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-
 		},
 	}
 }
@@ -88,12 +87,12 @@ func resourceVDICreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	vdiRecord := xenAPI.VDIRecord{
-		NameLabel: d.Get(vdiSchemaName).(string),
+		NameLabel:   d.Get(vdiSchemaName).(string),
 		VirtualSize: d.Get(vdiSchemaSize).(int),
-		Sharable: d.Get(vdiSchemaShared).(bool),
-		ReadOnly: d.Get(vdiSchemaRO).(bool),
-		SR: sr.SRRef,
-		Type: xenAPI.VdiTypeUser,
+		Sharable:    d.Get(vdiSchemaShared).(bool),
+		ReadOnly:    d.Get(vdiSchemaRO).(bool),
+		SR:          sr.SRRef,
+		Type:        xenAPI.VdiTypeUser,
 	}
 
 	log.Println("Object to send: ", vdiRecord)
@@ -157,41 +156,41 @@ func resourceVDIUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if(d.HasChange(vdiSchemaName)) {
+	if d.HasChange(vdiSchemaName) {
 		_, n := d.GetChange(vdiSchemaName)
 
 		if err := c.client.VDI.SetNameLabel(c.session, vdi.VDIRef, n.(string)); err != nil {
-			return err;
+			return err
 		}
 
 		d.SetPartial(vdiSchemaName)
 	}
 
-	if(d.HasChange(vdiSchemaSize)) {
+	if d.HasChange(vdiSchemaSize) {
 		_, n := d.GetChange(vdiSchemaSize)
 
 		if err := c.client.VDI.SetVirtualSize(c.session, vdi.VDIRef, n.(int)); err != nil {
-			return err;
+			return err
 		}
 
 		d.SetPartial(vdiSchemaSize)
 	}
 
-	if(d.HasChange(vdiSchemaShared)) {
+	if d.HasChange(vdiSchemaShared) {
 		_, n := d.GetChange(vdiSchemaShared)
 
 		if err := c.client.VDI.SetSharable(c.session, vdi.VDIRef, n.(bool)); err != nil {
-			return err;
+			return err
 		}
 
 		d.SetPartial(vdiSchemaShared)
 	}
 
-	if(d.HasChange(vdiSchemaRO)) {
+	if d.HasChange(vdiSchemaRO) {
 		_, n := d.GetChange(vdiSchemaRO)
 
 		if err := c.client.VDI.SetReadOnly(c.session, vdi.VDIRef, n.(bool)); err != nil {
-			return err;
+			return err
 		}
 
 		d.SetPartial(vdiSchemaRO)
@@ -216,7 +215,7 @@ func resourceVDIDelete(d *schema.ResourceData, m interface{}) error {
 
 	return nil
 }
-func resourceVDIExists(d *schema.ResourceData, m interface{}) (bool,error) {
+func resourceVDIExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	c := m.(*Connection)
 
 	vdi := &VDIDescriptor{

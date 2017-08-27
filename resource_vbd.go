@@ -19,19 +19,19 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
-	"log"
-	"fmt"
 	"bytes"
-	"strings"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mborodin/go-xen-api-client"
+	"log"
+	"strings"
 )
 
 const (
-	vbdSchemaUUID                   = "vdi_uuid"
-	vbdSchemaBootable               = "bootable"
-	vbdSchemaMode                   = "mode"
+	vbdSchemaUUID     = "vdi_uuid"
+	vbdSchemaBootable = "bootable"
+	vbdSchemaMode     = "mode"
 )
 
 func readVBDsFromSchema(c *Connection, s []interface{}) ([]*VBDDescriptor, error) {
@@ -62,9 +62,9 @@ func readVBDsFromSchema(c *Connection, s []interface{}) ([]*VBDDescriptor, error
 		}
 
 		vbd := &VBDDescriptor{
-			VDI: vdi,
+			VDI:      vdi,
 			Bootable: bootable,
-			Mode: mode,
+			Mode:     mode,
 		}
 
 		vbds = append(vbds, vbd)
@@ -79,9 +79,9 @@ func fillVBDSchema(vbd VBDDescriptor) map[string]interface{} {
 		uuid = vbd.VDI.UUID
 	}
 	return map[string]interface{}{
-		vbdSchemaUUID: uuid,
+		vbdSchemaUUID:     uuid,
 		vbdSchemaBootable: vbd.Bootable,
-		vbdSchemaMode: vbd.Mode,
+		vbdSchemaMode:     vbd.Mode,
 	}
 }
 
@@ -89,11 +89,11 @@ func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 	log.Println(fmt.Sprintf("[DEBUG] Creating VBD for VM %q", vbd.VM.Name))
 
 	vbdObject := xenAPI.VBDRecord{
-		Type: vbd.Type,
-		Mode: vbd.Mode,
+		Type:     vbd.Type,
+		Mode:     vbd.Mode,
 		Bootable: vbd.Bootable,
-		VM: vbd.VM.VMRef,
-		Empty: vbd.VDI == nil,
+		VM:       vbd.VM.VMRef,
+		Empty:    vbd.VDI == nil,
 	}
 
 	if devices, err := c.client.VM.GetAllowedVBDDevices(c.session, vbd.VM.VMRef); err == nil {
@@ -143,7 +143,7 @@ func vbdHash(v interface{}) int {
 	var count int = 0
 	b, _ := buf.WriteString(fmt.Sprintf("%s-", m["vdi_uuid"].(string)))
 	count += b
-	b, _ = buf.WriteString(fmt.Sprintf("%t-",m["bootable"].(bool)))
+	b, _ = buf.WriteString(fmt.Sprintf("%t-", m["bootable"].(bool)))
 	count += b
 	b, _ = buf.WriteString(fmt.Sprintf("%s-",
 		strings.ToLower(m["mode"].(string))))
@@ -187,15 +187,15 @@ func resourceVBD() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			vbdSchemaBootable : &schema.Schema{
+			vbdSchemaBootable: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default: false,
+				Default:  false,
 			},
-			vbdSchemaMode     : &schema.Schema{
+			vbdSchemaMode: &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default: xenAPI.VbdModeRW,
+				Default:  xenAPI.VbdModeRW,
 			},
 		},
 	}

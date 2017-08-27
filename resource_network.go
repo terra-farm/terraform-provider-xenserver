@@ -25,10 +25,10 @@ import (
 )
 
 const (
-	networkSchemaName                 = "name_label"
-	networkSchemaDescription          = "description"
-	networkSchemaBridge               = "bridge"
-	networkSchemaMTU                  = "mtu"
+	networkSchemaName        = "name_label"
+	networkSchemaDescription = "description"
+	networkSchemaBridge      = "bridge"
+	networkSchemaMTU         = "mtu"
 )
 
 func resourceNetwork() *schema.Resource {
@@ -40,7 +40,7 @@ func resourceNetwork() *schema.Resource {
 		Exists: resourceNetworkExists,
 
 		Schema: map[string]*schema.Schema{
-			networkSchemaName  : &schema.Schema{
+			networkSchemaName: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -50,17 +50,16 @@ func resourceNetwork() *schema.Resource {
 				Optional: true,
 			},
 
-			networkSchemaMTU  : &schema.Schema{
+			networkSchemaMTU: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			networkSchemaBridge  : &schema.Schema{
+			networkSchemaBridge: &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 		},
 	}
 }
@@ -69,10 +68,10 @@ func resourceNetworkCreate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
 	networkRecord := xenAPI.NetworkRecord{
-		NameLabel: d.Get(networkSchemaName).(string),
+		NameLabel:       d.Get(networkSchemaName).(string),
 		NameDescription: d.Get(networkSchemaDescription).(string),
-		MTU: d.Get(networkSchemaMTU).(int),
-		Bridge: d.Get(networkSchemaBridge).(string),
+		MTU:             d.Get(networkSchemaMTU).(int),
+		Bridge:          d.Get(networkSchemaBridge).(string),
 	}
 
 	if networkRef, err := c.client.Network.Create(c.session, networkRecord); err == nil {
@@ -122,7 +121,6 @@ func resourceNetworkRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-
 	return nil
 }
 func resourceNetworkUpdate(d *schema.ResourceData, m interface{}) error {
@@ -136,31 +134,31 @@ func resourceNetworkUpdate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if(d.HasChange(networkSchemaName)) {
+	if d.HasChange(networkSchemaName) {
 		_, n := d.GetChange(networkSchemaName)
 
 		if err := c.client.Network.SetNameLabel(c.session, network.NetworkRef, n.(string)); err != nil {
-			return err;
+			return err
 		}
 
 		d.SetPartial(networkSchemaName)
 	}
 
-	if(d.HasChange(networkSchemaMTU)) {
+	if d.HasChange(networkSchemaMTU) {
 		_, n := d.GetChange(networkSchemaMTU)
 
 		if err := c.client.Network.SetMTU(c.session, network.NetworkRef, n.(int)); err != nil {
-			return err;
+			return err
 		}
 
 		d.SetPartial(networkSchemaMTU)
 	}
 
-	if(d.HasChange(networkSchemaDescription)) {
+	if d.HasChange(networkSchemaDescription) {
 		_, n := d.GetChange(networkSchemaDescription)
 
 		if err := c.client.Network.SetNameDescription(c.session, network.NetworkRef, n.(string)); err != nil {
-			return err;
+			return err
 		}
 
 		d.SetPartial(networkSchemaDescription)
@@ -185,7 +183,7 @@ func resourceNetworkDelete(d *schema.ResourceData, m interface{}) error {
 
 	return nil
 }
-func resourceNetworkExists(d *schema.ResourceData, m interface{}) (bool,error) {
+func resourceNetworkExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	c := m.(*Connection)
 
 	network := &NetworkDescriptor{

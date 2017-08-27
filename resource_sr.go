@@ -19,6 +19,6 @@
 package main
 
 const (
-	srSchemaUUID                 = "uuid"
-	srSchemaName                 = "name_label"
+	srSchemaUUID = "uuid"
+	srSchemaName = "name_label"
 )

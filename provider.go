@@ -32,8 +32,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"xenserver_vm": resourceVM(),
-			"xenserver_vdi": resourceVDI(),
+			"xenserver_vm":      resourceVM(),
+			"xenserver_vdi":     resourceVDI(),
 			"xenserver_network": resourceNetwork(),
 		},
 
