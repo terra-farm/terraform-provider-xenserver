@@ -1,19 +1,7 @@
 {
 	"comment": "",
-	"ignore": "test",
+	"ignore": "test appengine",
 	"package": [
-		{
-			"path": "appengine",
-			"revision": ""
-		},
-		{
-			"path": "appengine_internal",
-			"revision": ""
-		},
-		{
-			"path": "appengine_internal/base",
-			"revision": ""
-		},
 		{
 			"checksumSHA1": "AH7jcN7pvaPDU6UjHdpT081DDGk=",
 			"path": "cloud.google.com/go/compute/metadata",
@@ -1945,10 +1933,6 @@
 			"path": "github.com/masterzen/winrm/soap",
 			"revision": "a2df6b1315e6fd5885eb15c67ed259e85854125f",
 			"revisionTime": "2017-08-14T13:39:27Z"
-		},
-		{
-			"path": "github.com/masterzen/winrm/winrm",
-			"revision": ""
 		},
 		{
 			"checksumSHA1": "cTDA66oZUy18cIzJsU1diKq+9CE=",
