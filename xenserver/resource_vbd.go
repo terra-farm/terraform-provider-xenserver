@@ -21,11 +21,12 @@ package xenserver
 import (
 	"bytes"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mborodin/go-xen-api-client"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/ringods/go-xen-api-client"
 )
 
 const (

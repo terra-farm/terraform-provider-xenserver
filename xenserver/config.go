@@ -1,7 +1,7 @@
 package xenserver
 
 import (
-	"github.com/mborodin/go-xen-api-client"
+	"github.com/ringods/go-xen-api-client"
 )
 
 // Config ...

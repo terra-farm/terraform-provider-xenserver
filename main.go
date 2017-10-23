@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/amfranz/terraform-provider-xenserver/xenserver"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/ringods/terraform-provider-xenserver/xenserver"
 )
 
 func main() {

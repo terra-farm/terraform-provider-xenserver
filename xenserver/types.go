@@ -23,7 +23,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/mborodin/go-xen-api-client"
+	"github.com/ringods/go-xen-api-client"
 )
 
 type Range struct {

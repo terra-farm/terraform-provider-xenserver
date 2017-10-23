@@ -19,9 +19,10 @@
 package xenserver
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mborodin/go-xen-api-client"
 	"log"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/ringods/go-xen-api-client"
 )
 
 const (

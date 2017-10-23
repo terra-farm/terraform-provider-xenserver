@@ -1953,12 +1953,6 @@
 			"revisionTime": "2017-08-03T00:17:40Z"
 		},
 		{
-			"checksumSHA1": "53YGOttMr/05mG+MW7MJpfMUQww=",
-			"path": "github.com/mborodin/go-xen-api-client",
-			"revision": "4e1561ec362349199afeb0a68c190eb924e6eff1",
-			"revisionTime": "2016-09-09T11:13:12Z"
-		},
-		{
 			"checksumSHA1": "gPuHq0UytpuYPb2YWmFVb22Twcc=",
 			"path": "github.com/mitchellh/cli",
 			"revision": "0ce7cd515f64496ee660ab19f6bbf373945d3af0",
@@ -2059,6 +2053,12 @@
 			"path": "github.com/posener/complete/match",
 			"revision": "2100d1b06c06462a8a47bfc41a7f24a5d60a1420",
 			"revisionTime": "2017-08-25T06:44:15Z"
+		},
+		{
+			"checksumSHA1": "WEO4P5lbkRdiDfQCCStz06+JbEA=",
+			"path": "github.com/ringods/terraform-provider-xenserver",
+			"revision": "c11fd63ee4791d684d6d50d456451209ada1ed56",
+			"revisionTime": "2017-10-14T08:34:19Z"
 		},
 		{
 			"checksumSHA1": "M57Rrfc8Z966p+IBtQ91QOcUtcg=",
@@ -2629,7 +2629,11 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "eb3733d160e74a9c7e442f435eb3bea458e1d19f",
 			"revisionTime": "2017-08-12T16:00:11Z"
+		},
+		{
+			"path": "vendor/vendor.json",
+			"revision": ""
 		}
 	],
-	"rootPath": "github.com/amfranz/terraform-provider-xenserver"
+	"rootPath": "github.com/ringods/terraform-provider-xenserver"
 }
