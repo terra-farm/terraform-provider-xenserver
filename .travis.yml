@@ -2,7 +2,6 @@ dist: trusty
 sudo: false
 language: go
 go:
-  - 1.8.4
   - 1.9.1
 os:
   - linux
