@@ -8,6 +8,10 @@ os:
   - linux
   - osx
 
+before_install:
+- openssl aes-256-cbc -K $encrypted_f2f8be5bc079_key -iv $encrypted_f2f8be5bc079_iv 
+  -in gogetcookie.sh.enc -out scripts/gogetcookie.sh -d
+
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
