@@ -2055,6 +2055,12 @@
 			"revisionTime": "2017-08-25T06:44:15Z"
 		},
 		{
+			"checksumSHA1": "7e8Ne2T4TXxvB2RR6vB+7lhx/wA=",
+			"path": "github.com/ringods/go-xen-api-client",
+			"revision": "4e1561ec362349199afeb0a68c190eb924e6eff1",
+			"revisionTime": "2016-09-09T11:13:12Z"
+		},
+		{
 			"checksumSHA1": "WEO4P5lbkRdiDfQCCStz06+JbEA=",
 			"path": "github.com/ringods/terraform-provider-xenserver",
 			"revision": "c11fd63ee4791d684d6d50d456451209ada1ed56",
