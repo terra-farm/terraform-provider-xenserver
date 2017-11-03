@@ -143,6 +143,7 @@ func resourceVM() *schema.Resource {
 			vmSchemaCoresPerSocket: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 		},
 	}
@@ -300,6 +301,19 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		}
 
 		vm.Platform["cores-per-socket"] = strconv.Itoa(coresPerSocket)
+	} else {
+		_coresPerSocket = vm.Platform["cores-per-socket"]
+		// If empty - set one core per socket
+		if _coresPerSocket == "" {
+			_coresPerSocket = "1"
+		}
+
+		var coresPerSocket int
+		if coresPerSocket, err = strconv.Atoi(_coresPerSocket.(string)); err != nil {
+			if err = d.Set(vmSchemaCoresPerSocket, coresPerSocket); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err = c.client.VM.SetPlatform(c.session, vm.VMRef, vm.Platform); err != nil {

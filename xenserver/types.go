@@ -248,8 +248,11 @@ func (this *VMDescriptor) Query(c *Connection) error {
 	this.OtherConfig = vm.OtherConfig
 	this.XenstoreData = vm.XenstoreData
 	this.HVMBootParameters = vm.HVMBootParams
-	this.Platform = vm.Platform
 	this.IsATemplate = vm.IsATemplate
+
+	if this.Platform, err = c.client.VM.GetPlatform(c.session, this.VMRef); err != nil {
+		return err
+	}
 
 	return nil
 }
