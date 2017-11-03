@@ -202,6 +202,13 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	// Reset base template name
+	otherConfig := vm.OtherConfig
+	otherConfig["base_template_name"] = dBaseTemplateName
+	if err = c.client.VM.SetOtherConfig(c.session, vm.VMRef, otherConfig); err != nil {
+		return err
+	}
+
 	// Memory configuration
 	mem, ok := d.GetOk(vmSchemaStaticMemoryMin)
 	if ok {
