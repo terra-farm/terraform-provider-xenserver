@@ -23,7 +23,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/ringods/go-xen-api-client"
+	"github.com/gingods/go-xen-api-client"
 )
 
 type Range struct {
@@ -99,14 +99,16 @@ type VDIDescriptor struct {
 }
 
 type VBDDescriptor struct {
-	UUID       string
-	VM         *VMDescriptor
-	VDI        *VDIDescriptor
-	Device     string
-	UserDevice string
-	Mode       xenAPI.VbdMode
-	Type       xenAPI.VbdType
-	Bootable   bool
+	UUID             string
+	VM               *VMDescriptor
+	VDI              *VDIDescriptor
+	Device           string
+	UserDevice       string
+	Mode             xenAPI.VbdMode
+	Type             xenAPI.VbdType
+	Bootable         bool
+	OtherConfig      map[string]string
+	IsTemplateDevice bool
 
 	VBDRef xenAPI.VBDRef
 }
@@ -445,7 +447,7 @@ func (this *VDIDescriptor) Query(c *Connection) error {
 	return nil
 }
 
-func (this *VBDDescriptor) Load(c *Connection) error {
+/*func (this *VBDDescriptor) Load(c *Connection) error {
 	var vbd xenAPI.VBDRef
 
 	if this.UUID != "" {
@@ -461,9 +463,12 @@ func (this *VBDDescriptor) Load(c *Connection) error {
 	this.VBDRef = vbd
 
 	return this.Query(c)
-}
+}*/
 
 func (this *VBDDescriptor) Query(c *Connection) error {
+
+	log.Println("[DEBUG] Query VBD")
+
 	vbd, err := c.client.VBD.GetRecord(c.session, this.VBDRef)
 	if err != nil {
 		return err
@@ -475,6 +480,21 @@ func (this *VBDDescriptor) Query(c *Connection) error {
 	this.UserDevice = vbd.Userdevice
 	this.Bootable = vbd.Bootable
 	this.Mode = vbd.Mode
+	this.OtherConfig = vbd.OtherConfig
+
+	isTemplateDevice := false
+
+	if val, ok := this.OtherConfig[vbdSchemaTemplateDevice]; ok {
+		log.Printf("[DEBUG] Got from OtherConfig %s\n", val)
+		if parsed, err := strconv.ParseBool(val); err == nil {
+			log.Printf("[DEBUG] Parsed from OtherConfig %t\n", parsed)
+			isTemplateDevice = parsed
+		} else {
+			log.Printf("[ERROR] Cannot parse %s as boolean value; got %s", vbdSchemaTemplateDevice, val)
+		}
+	}
+
+	this.IsTemplateDevice = isTemplateDevice
 
 	vm := &VMDescriptor{
 		VMRef: vbd.VM,
@@ -499,6 +519,27 @@ func (this *VBDDescriptor) Query(c *Connection) error {
 	return nil
 }
 
+func (this *VBDDescriptor) Commit(c *Connection) (err error) {
+
+	if err = c.client.VBD.SetBootable(c.session, this.VBDRef, this.Bootable); err != nil {
+		return err
+	}
+
+	if err = c.client.VBD.SetMode(c.session, this.VBDRef, this.Mode); err != nil {
+		return err
+	}
+
+	this.OtherConfig[vbdSchemaTemplateDevice] = strconv.FormatBool(this.IsTemplateDevice)
+
+	if err = c.client.VBD.SetOtherConfig(c.session, this.VBDRef, this.OtherConfig); err != nil {
+		return err
+	}
+
+	log.Println("[DEBUG] VBD Commited")
+
+	return nil
+}
+
 func (this *PIFDescriptor) Load(c *Connection) error {
 	var pif xenAPI.PIFRef
 
@@ -509,7 +550,7 @@ func (this *PIFDescriptor) Load(c *Connection) error {
 		}
 		pif = _vbd
 	} else {
-		return fmt.Errorf("%q should be specified!", vbdSchemaUUID)
+		return fmt.Errorf("%q should be specified!", pifSchemaUUID)
 	}
 
 	this.PIFRef = pif
@@ -538,7 +579,7 @@ func (this *VLANDescriptor) Load(c *Connection) error {
 		}
 		vlan = _vbd
 	} else {
-		return fmt.Errorf("%q should be specified!", vbdSchemaUUID)
+		return fmt.Errorf("%q should be specified!", vlanSchemaTag)
 	}
 
 	this.VLANRef = vlan

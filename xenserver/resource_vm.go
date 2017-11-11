@@ -284,6 +284,11 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	if setSchemaVBDs(c, vm, d) != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+
 	if _order, ok := d.GetOk(vmSchemaBootOrder); ok {
 		order := _order.(string)
 		vm.HVMBootParameters["order"] = order
@@ -432,45 +437,7 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vmVBDs, err := c.client.VM.GetVBDs(c.session, vm.VMRef)
-	if err != nil {
-		return err
-	}
-
-	hdd := make([]map[string]interface{}, 0, len(vmVBDs))
-	cdrom := make([]map[string]interface{}, 0, len(vmVBDs))
-	log.Println(fmt.Sprintf("[DEBUG] Got %d VDIs", len(vmVBDs)))
-
-	for _, _vbd := range vmVBDs {
-		vbd := VBDDescriptor{
-			VBDRef: _vbd,
-		}
-
-		if err := vbd.Query(c); err != nil {
-			return err
-		}
-
-		log.Println("[DEBUG] Found VBD", vbd.UUID)
-		vbdData := fillVBDSchema(vbd)
-		log.Println("[DEBUG] VBD: ", vbdData)
-
-		switch vbd.Type {
-		case xenAPI.VbdTypeCD:
-			cdrom = append(cdrom, vbdData)
-			break
-		case xenAPI.VbdTypeDisk:
-			hdd = append(hdd, vbdData)
-		default:
-			return fmt.Errorf("Unsupported VBD type %q", string(vbd.Type))
-		}
-	}
-	err = d.Set(vmSchemaHardDrive, hdd)
-	if err != nil {
-		log.Println("[ERROR] ", err)
-		return err
-	}
-	err = d.Set(vmSchemaCdRom, cdrom)
-	if err != nil {
+	if setSchemaVBDs(c, vm, d) != nil {
 		log.Println("[ERROR] ", err)
 		return err
 	}

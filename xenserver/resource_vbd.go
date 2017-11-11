@@ -30,10 +30,105 @@ import (
 )
 
 const (
-	vbdSchemaUUID     = "vdi_uuid"
-	vbdSchemaBootable = "bootable"
-	vbdSchemaMode     = "mode"
+	vbdSchemaVdiUUID        = "vdi_uuid"
+	vbdSchemaBootable       = "bootable"
+	vbdSchemaMode           = "mode"
+	vbdSchemaUserDevice     = "user_device"
+	vbdSchemaTemplateDevice = "is_from_template"
 )
+
+func readTemplateVBDsToSchema(c *Connection, vm *VMDescriptor, s []interface{}, vbdType xenAPI.VbdType) error {
+	var vmVBDRefs []xenAPI.VBDRef
+	var err error
+	if vmVBDRefs, err = c.client.VM.GetVBDs(c.session, vm.VMRef); err != nil {
+		return err
+	}
+
+	for _, vmVBDRef := range vmVBDRefs {
+		vbd := &VBDDescriptor{
+			VBDRef: vmVBDRef,
+		}
+
+		if vbd.Query(c) != nil {
+			return err
+		}
+
+		// Skip unrelevant VBDs
+		if vbdType != vbd.Type {
+			continue
+		}
+
+		found := false
+		for _, schm := range s {
+			data := schm.(map[string]interface{})
+			userDevice := data[vbdSchemaUserDevice].(string)
+			isTemplateDevice := data[vbdSchemaTemplateDevice].(bool)
+
+			if isTemplateDevice && userDevice == vbd.UserDevice {
+				found = true
+
+				vbd.IsTemplateDevice = isTemplateDevice
+
+				if err = vbd.Commit(c); err != nil {
+					return err
+				}
+
+				data[vbdSchemaUserDevice] = vbd.UserDevice
+				data[vbdSchemaVdiUUID] = vbd.VDI.UUID
+				data[vbdSchemaBootable] = vbd.Bootable
+				data[vbdSchemaMode] = vbd.Mode
+				data[vbdSchemaTemplateDevice] = isTemplateDevice
+
+				break
+			}
+
+		}
+
+		if !found {
+			return fmt.Errorf("template VBD %s is not referenced", vbd.UUID)
+		}
+	}
+
+	return nil
+}
+
+func readVBDFromSchema(c *Connection, s map[string]interface{}) (*VBDDescriptor, error) {
+	// In API it is called user_device, but in terraform provider it is called template device
+	// to emphasise that it is used to map VBD from template
+	userDevice := s[vbdSchemaUserDevice].(string)
+
+	var vdi *VDIDescriptor = nil
+
+	if id, ok := s[vbdSchemaVdiUUID]; ok {
+		log.Println("[DEBUG] Try load VDI ", id)
+		vdi = &VDIDescriptor{}
+		vdi.UUID = id.(string)
+		if err := vdi.Load(c); err != nil {
+			return nil, err
+		}
+	}
+	bootable := s[vbdSchemaBootable].(bool)
+
+	var mode xenAPI.VbdMode
+	_mode := strings.ToLower(s[vbdSchemaMode].(string))
+
+	if _mode == strings.ToLower(string(xenAPI.VbdModeRO)) {
+		mode = xenAPI.VbdModeRO
+	} else if _mode == strings.ToLower(string(xenAPI.VbdModeRW)) {
+		mode = xenAPI.VbdModeRW
+	} else {
+		return nil, fmt.Errorf("%q is not valid mode (either RO or RW)", s[vbdSchemaMode].(string))
+	}
+
+	vbd := &VBDDescriptor{
+		VDI:        vdi,
+		Bootable:   bootable,
+		Mode:       mode,
+		UserDevice: userDevice,
+	}
+
+	return vbd, nil
+}
 
 func readVBDsFromSchema(c *Connection, s []interface{}) ([]*VBDDescriptor, error) {
 	vbds := make([]*VBDDescriptor, 0, len(s))
@@ -41,33 +136,11 @@ func readVBDsFromSchema(c *Connection, s []interface{}) ([]*VBDDescriptor, error
 	for _, schm := range s {
 		data := schm.(map[string]interface{})
 
-		var vdi *VDIDescriptor = nil
-		if id, ok := data[vbdSchemaUUID]; ok {
-			vdi = &VDIDescriptor{}
-			vdi.UUID = id.(string)
-			if err := vdi.Load(c); err != nil {
-				return nil, err
-			}
+		var vbd *VBDDescriptor
+		var err error
+		if vbd, err = readVBDFromSchema(c, data); err != nil {
+			return nil, err
 		}
-		bootable := data[vbdSchemaBootable].(bool)
-
-		var mode xenAPI.VbdMode
-		_mode := strings.ToLower(data[vbdSchemaMode].(string))
-
-		if _mode == strings.ToLower(string(xenAPI.VbdModeRO)) {
-			mode = xenAPI.VbdModeRO
-		} else if _mode == strings.ToLower(string(xenAPI.VbdModeRW)) {
-			mode = xenAPI.VbdModeRW
-		} else {
-			return nil, fmt.Errorf("%q is not valid mode (either RO or RW)", data[vbdSchemaMode].(string))
-		}
-
-		vbd := &VBDDescriptor{
-			VDI:      vdi,
-			Bootable: bootable,
-			Mode:     mode,
-		}
-
 		vbds = append(vbds, vbd)
 	}
 
@@ -80,21 +153,86 @@ func fillVBDSchema(vbd VBDDescriptor) map[string]interface{} {
 		uuid = vbd.VDI.UUID
 	}
 	return map[string]interface{}{
-		vbdSchemaUUID:     uuid,
-		vbdSchemaBootable: vbd.Bootable,
-		vbdSchemaMode:     vbd.Mode,
+		vbdSchemaVdiUUID:        uuid,
+		vbdSchemaBootable:       vbd.Bootable,
+		vbdSchemaMode:           vbd.Mode,
+		vbdSchemaUserDevice:     vbd.UserDevice,
+		vbdSchemaTemplateDevice: vbd.IsTemplateDevice,
 	}
+}
+
+func readVBDs(c *Connection, vm *VMDescriptor) ([]map[string]interface{}, []map[string]interface{}, error) {
+	vmVBDs, err := c.client.VM.GetVBDs(c.session, vm.VMRef)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdd := make([]map[string]interface{}, 0, len(vmVBDs))
+	cdrom := make([]map[string]interface{}, 0, len(vmVBDs))
+	log.Println(fmt.Sprintf("[DEBUG] Got %d VDIs", len(vmVBDs)))
+
+	for _, _vbd := range vmVBDs {
+		vbd := VBDDescriptor{
+			VBDRef: _vbd,
+		}
+
+		if err := vbd.Query(c); err != nil {
+			return nil, nil, err
+		}
+
+		log.Println("[DEBUG] Found VBD", vbd.UUID)
+		vbdData := fillVBDSchema(vbd)
+		log.Println("[DEBUG] VBD: ", vbdData)
+		log.Println("[DEBUG] VBD Type: ", vbd.Type)
+
+		switch vbd.Type {
+		case xenAPI.VbdTypeCD:
+			cdrom = append(cdrom, vbdData)
+			break
+		case xenAPI.VbdTypeDisk:
+			hdd = append(hdd, vbdData)
+		default:
+			return nil, nil, fmt.Errorf("Unsupported VBD type %q", string(vbd.Type))
+		}
+	}
+
+	return hdd, cdrom, nil
+}
+
+func setSchemaVBDs(c *Connection, vm *VMDescriptor, d *schema.ResourceData) error {
+	var err error
+	var hdd []map[string]interface{}
+	var cdrom []map[string]interface{}
+	if hdd, cdrom, err = readVBDs(c, vm); err != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+
+	log.Println("[DEBUG] Found ", len(cdrom), " CDs and ", len(hdd), " HDDs")
+	err = d.Set(vmSchemaHardDrive, hdd)
+	if err != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+	err = d.Set(vmSchemaCdRom, cdrom)
+	if err != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+
+	return nil
 }
 
 func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 	log.Println(fmt.Sprintf("[DEBUG] Creating VBD for VM %q", vbd.VM.Name))
 
 	vbdObject := xenAPI.VBDRecord{
-		Type:     vbd.Type,
-		Mode:     vbd.Mode,
-		Bootable: vbd.Bootable,
-		VM:       vbd.VM.VMRef,
-		Empty:    vbd.VDI == nil,
+		Type:       vbd.Type,
+		Mode:       vbd.Mode,
+		Bootable:   vbd.Bootable,
+		VM:         vbd.VM.VMRef,
+		Empty:      vbd.VDI == nil,
+		Userdevice: vbd.UserDevice,
 	}
 
 	if devices, err := c.client.VM.GetAllowedVBDDevices(c.session, vbd.VM.VMRef); err == nil {
@@ -139,32 +277,68 @@ func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 }
 
 func vbdHash(v interface{}) int {
-	var buf bytes.Buffer
 	m := v.(map[string]interface{})
+	var buf bytes.Buffer
 	var count int = 0
-	b, _ := buf.WriteString(fmt.Sprintf("%s-", m["vdi_uuid"].(string)))
-	count += b
-	b, _ = buf.WriteString(fmt.Sprintf("%t-", m["bootable"].(bool)))
-	count += b
-	b, _ = buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["mode"].(string))))
-	count += b
+	var b int
+
+	userDevice := m[vbdSchemaUserDevice].(string)
+	isTemplateDevice := m[vbdSchemaTemplateDevice].(bool)
+	mode := m[vbdSchemaMode].(string)
+	bootable := m[vbdSchemaBootable].(bool)
+	vdiUUID := m[vbdSchemaVdiUUID].(string)
+
+	log.Println("[DEBUG] Calculating hash for ", v)
+
+	if isTemplateDevice || userDevice != "" {
+		b, _ = buf.WriteString(fmt.Sprintf("%s", userDevice))
+		count += b
+	}
+
+	if !isTemplateDevice {
+		b, _ = buf.WriteString(fmt.Sprintf("-%s", vdiUUID))
+		count += b
+
+		if mode != "" {
+			b, _ = buf.WriteString(fmt.Sprintf("%-s", mode))
+			count += b
+		}
+
+		b, _ = buf.WriteString(fmt.Sprintf("-%t", bootable))
+		count += b
+	}
 	log.Println("Consumed total ", count, " bytes to generate hash")
+	log.Println("String for hash: ", buf.String())
 
 	return hashcode.String(buf.String())
 }
 
 func createVBDs(c *Connection, s []interface{}, vbdType xenAPI.VbdType, vm *VMDescriptor) (err error) {
-	var vbds []*VBDDescriptor
-	log.Println("[DEBUG] Creating ", len(s), " VBDS of type ", vbdType)
 
-	if vbds, err = readVBDsFromSchema(c, s); err != nil {
+	if err := readTemplateVBDsToSchema(c, vm, s, vbdType); err != nil {
 		return err
 	}
 
-	log.Println("[DEBUG] Parsed ", len(vbds), " VBD descriptors")
+	log.Println("[DEBUG] Creating ", len(s), " VBDS of type ", vbdType)
 
-	for _, vbd := range vbds {
+	for _, schm := range s {
+		data := schm.(map[string]interface{})
+
+		if _, ok := data[vbdSchemaUserDevice]; ok {
+			continue
+		}
+
+		var vbd *VBDDescriptor
+		var err error
+		if vbd, err = readVBDFromSchema(c, data); err != nil {
+			return err
+		}
+
+		// User Device is used to specify existing VBDs
+		if vbd.UserDevice != "" {
+			continue
+		}
+
 		vbd.Type = vbdType
 		vbd.VM = vm
 
@@ -172,9 +346,14 @@ func createVBDs(c *Connection, s []interface{}, vbdType xenAPI.VbdType, vm *VMDe
 			vbd.Mode = xenAPI.VbdModeRO
 		}
 
-		if _, err = createVBD(c, vbd); err != nil {
+		if vbd, err = createVBD(c, vbd); err != nil {
 			return err
 		}
+
+		data[vbdSchemaUserDevice] = vbd.UserDevice
+		data[vbdSchemaVdiUUID] = vbd.VDI.UUID
+		data[vbdSchemaBootable] = vbd.Bootable
+		data[vbdSchemaMode] = vbd.Mode
 	}
 
 	return nil
@@ -184,19 +363,34 @@ func resourceVBD() *schema.Resource {
 	return &schema.Resource{
 
 		Schema: map[string]*schema.Schema{
-			vbdSchemaUUID: &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			vbdSchemaBootable: &schema.Schema{
+			vbdSchemaTemplateDevice: &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			vbdSchemaMode: &schema.Schema{
+			vbdSchemaVdiUUID: &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"hard_drive.0.is_from_template", "cdrom.0.is_from_template"},
+			},
+			vbdSchemaUserDevice: &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  xenAPI.VbdModeRW,
+				Computed: true,
+				//ConflictsWith: []string{"hard_drive.0.vdi_uuid", "cdrom.0.vdi_uuid"},
+			},
+			vbdSchemaBootable: &schema.Schema{
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"hard_drive.0.is_from_template", "cdrom.0.is_from_template"},
+			},
+			vbdSchemaMode: &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"hard_drive.0.is_from_template", "cdrom.0.is_from_template"},
 			},
 		},
 	}
