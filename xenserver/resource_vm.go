@@ -816,7 +816,17 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	var vbds []*VBDDescriptor
+	if vbds, err = queryTemplateVBDs(c, &vm); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Found %d template vbds", len(vbds))
+
 	if err := c.client.VM.Destroy(c.session, vm.VMRef); err != nil {
+		return err
+	}
+
+	if err = destroyTemplateVDIs(c, vbds); err != nil {
 		return err
 	}
 

@@ -37,6 +37,33 @@ const (
 	vbdSchemaTemplateDevice = "is_from_template"
 )
 
+func queryTemplateVBDs(c *Connection, vm *VMDescriptor) (vbds []*VBDDescriptor, err error) {
+	vbds = make([]*VBDDescriptor, 0)
+	var vmVBDRefs []xenAPI.VBDRef
+	if vmVBDRefs, err = c.client.VM.GetVBDs(c.session, vm.VMRef); err != nil {
+		return
+	}
+
+	for _, vmVBDRef := range vmVBDRefs {
+		vbd := &VBDDescriptor{
+			VBDRef: vmVBDRef,
+		}
+
+		if err = vbd.Query(c); err != nil {
+			return nil, err
+		}
+
+		if vbd.IsTemplateDevice {
+			log.Printf("[DEBUG] VBD %s (type = %s) comes from template", vbd.UUID, vbd.Type)
+			vbds = append(vbds, vbd)
+		}
+	}
+
+	log.Printf("[DEBUG] Got %d template vdbs", len(vbds))
+
+	return vbds, nil
+}
+
 func readTemplateVBDsToSchema(c *Connection, vm *VMDescriptor, s []interface{}, vbdType xenAPI.VbdType) error {
 	var vmVBDRefs []xenAPI.VBDRef
 	var err error
@@ -89,6 +116,23 @@ func readTemplateVBDsToSchema(c *Connection, vm *VMDescriptor, s []interface{}, 
 		}
 	}
 
+	return nil
+}
+
+func destroyTemplateVDIs(c *Connection, vbds []*VBDDescriptor) (err error) {
+	log.Println("[DEBUG] Destroying vbds")
+	for _, vbd := range vbds {
+
+		// Only relevant to HDDs
+		if vbd.Type != xenAPI.VbdTypeDisk {
+			continue
+		}
+
+		log.Println("[DEBUG] Destroy vbd ", vbd.UUID)
+		if err = c.client.VDI.Destroy(c.session, vbd.VDI.VDIRef); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
