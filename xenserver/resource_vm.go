@@ -47,8 +47,6 @@ const (
 	vmSchemaXenstoreData              = "xenstore_data"
 )
 
-const xenstoreVMDataPrefix = "vm-data/"
-
 func resourceVM() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVMCreate,
@@ -71,6 +69,8 @@ func resourceVM() *schema.Resource {
 			vmSchemaXenstoreData: &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
+				Default:  nil,
+				Computed: true,
 			},
 
 			vmSchemaStaticMemoryMin: &schema.Schema{
@@ -179,11 +179,11 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if len(xenBaseTemplates) == 0 {
-		return fmt.Errorf("No VM template with label %q has been found", dBaseTemplateName)
+		return fmt.Errorf("no VM template with label %q has been found", dBaseTemplateName)
 	}
 
 	if len(xenBaseTemplates) > 1 {
-		return fmt.Errorf("More than one VM template with label %q has been found", dBaseTemplateName)
+		return fmt.Errorf("more than one VM template with label %q has been found", dBaseTemplateName)
 	}
 
 	xenBaseTemplate := xenBaseTemplates[0]
@@ -244,7 +244,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(vm.UUID)
 
 	dXenstoreDataRaw, ok := d.GetOk(vmSchemaXenstoreData)
-	if ok {
+	if ok && dXenstoreDataRaw != nil {
 		vm.XenstoreData = make(map[string]string)
 		for key, value := range dXenstoreDataRaw.(map[string]interface{}) {
 			vm.XenstoreData[key] = value.(string)
@@ -254,6 +254,14 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if vm.XenstoreData, err = c.client.VM.GetXenstoreData(c.session, vm.VMRef); err != nil {
+		return err
+	}
+	err = d.Set(vmSchemaXenstoreData, vm.XenstoreData)
+	if err != nil {
+		return err
 	}
 
 	log.Println("[DEBUG] VM Power State: ", vm.PowerState)
@@ -738,7 +746,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 	if ok {
 		dXenstoreData := make(map[string]string)
 		for key, value := range dXenstoreDataRaw.(map[string]interface{}) {
-			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
+			dXenstoreData[key] = value.(string)
 		}
 
 		if err := c.client.VM.SetXenstoreData(c.session, vm.VMRef, dXenstoreData); err != nil {
