@@ -9,11 +9,20 @@ description: |-
 
 # XenServer Provider
 
-The XenServer provider is used to interact with the resources supported by
-XenServer.
+The XenServer provider is used to interact with the resources supported by XenServer.
 The provider needs to be configured with the proper credentials before it can be used.
 
-Use the navigation to the left to read about the available resources.
+## Installation
+
+In your home folder, create a file `~/.terraformrc` with these contents:
+
+```hcl
+providers {
+  xenserver = "<full path>/terraform-provider-xenserver"
+}
+```
+
+NOTE: this is not yet updated for Terraform 0.11.
 
 ## Example Usage
 
