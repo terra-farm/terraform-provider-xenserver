@@ -190,7 +190,7 @@
   branch = "master"
   name = "github.com/ringods/go-xen-api-client"
   packages = ["."]
-  revision = "4e1561ec362349199afeb0a68c190eb924e6eff1"
+  revision = "6cd3601893a0970ccf44071df140a89844375f80"
 
 [[projects]]
   name = "github.com/satori/go.uuid"
