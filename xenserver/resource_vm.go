@@ -47,8 +47,6 @@ const (
 	vmSchemaXenstoreData              = "xenstore_data"
 )
 
-const xenstoreVMDataPrefix = "vm-data/"
-
 func resourceVM() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceVMCreate,
@@ -71,6 +69,8 @@ func resourceVM() *schema.Resource {
 			vmSchemaXenstoreData: &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
+				Default:  nil,
+				Computed: true,
 			},
 
 			vmSchemaStaticMemoryMin: &schema.Schema{
@@ -143,6 +143,7 @@ func resourceVM() *schema.Resource {
 			vmSchemaCoresPerSocket: &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 		},
 	}
@@ -178,11 +179,11 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if len(xenBaseTemplates) == 0 {
-		return fmt.Errorf("No VM template with label %q has been found", dBaseTemplateName)
+		return fmt.Errorf("no VM template with label %q has been found", dBaseTemplateName)
 	}
 
 	if len(xenBaseTemplates) > 1 {
-		return fmt.Errorf("More than one VM template with label %q has been found", dBaseTemplateName)
+		return fmt.Errorf("more than one VM template with label %q has been found", dBaseTemplateName)
 	}
 
 	xenBaseTemplate := xenBaseTemplates[0]
@@ -199,6 +200,13 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	if err = vm.Query(c); err != nil {
+		return err
+	}
+
+	// Reset base template name
+	otherConfig := vm.OtherConfig
+	otherConfig["base_template_name"] = dBaseTemplateName
+	if err = c.client.VM.SetOtherConfig(c.session, vm.VMRef, otherConfig); err != nil {
 		return err
 	}
 
@@ -236,7 +244,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetId(vm.UUID)
 
 	dXenstoreDataRaw, ok := d.GetOk(vmSchemaXenstoreData)
-	if ok {
+	if ok && dXenstoreDataRaw != nil {
 		vm.XenstoreData = make(map[string]string)
 		for key, value := range dXenstoreDataRaw.(map[string]interface{}) {
 			vm.XenstoreData[key] = value.(string)
@@ -246,6 +254,14 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if vm.XenstoreData, err = c.client.VM.GetXenstoreData(c.session, vm.VMRef); err != nil {
+		return err
+	}
+	err = d.Set(vmSchemaXenstoreData, vm.XenstoreData)
+	if err != nil {
+		return err
 	}
 
 	log.Println("[DEBUG] VM Power State: ", vm.PowerState)
@@ -276,6 +292,11 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	if setSchemaVBDs(c, vm, d) != nil {
+		log.Println("[ERROR] ", err)
+		return err
+	}
+
 	if _order, ok := d.GetOk(vmSchemaBootOrder); ok {
 		order := _order.(string)
 		vm.HVMBootParameters["order"] = order
@@ -293,6 +314,19 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		}
 
 		vm.Platform["cores-per-socket"] = strconv.Itoa(coresPerSocket)
+	} else {
+		_coresPerSocket = vm.Platform["cores-per-socket"]
+		// If empty - set one core per socket
+		if _coresPerSocket == "" {
+			_coresPerSocket = "1"
+		}
+
+		var coresPerSocket int
+		if coresPerSocket, err = strconv.Atoi(_coresPerSocket.(string)); err != nil {
+			if err = d.Set(vmSchemaCoresPerSocket, coresPerSocket); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err = c.client.VM.SetPlatform(c.session, vm.VMRef, vm.Platform); err != nil {
@@ -411,45 +445,7 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vmVBDs, err := c.client.VM.GetVBDs(c.session, vm.VMRef)
-	if err != nil {
-		return err
-	}
-
-	hdd := make([]map[string]interface{}, 0, len(vmVBDs))
-	cdrom := make([]map[string]interface{}, 0, len(vmVBDs))
-	log.Println(fmt.Sprintf("[DEBUG] Got %d VDIs", len(vmVBDs)))
-
-	for _, _vbd := range vmVBDs {
-		vbd := VBDDescriptor{
-			VBDRef: _vbd,
-		}
-
-		if err := vbd.Query(c); err != nil {
-			return err
-		}
-
-		log.Println("[DEBUG] Found VBD", vbd.UUID)
-		vbdData := fillVBDSchema(vbd)
-		log.Println("[DEBUG] VBD: ", vbdData)
-
-		switch vbd.Type {
-		case xenAPI.VbdTypeCD:
-			cdrom = append(cdrom, vbdData)
-			break
-		case xenAPI.VbdTypeDisk:
-			hdd = append(hdd, vbdData)
-		default:
-			return fmt.Errorf("Unsupported VBD type %q", string(vbd.Type))
-		}
-	}
-	err = d.Set(vmSchemaHardDrive, hdd)
-	if err != nil {
-		log.Println("[ERROR] ", err)
-		return err
-	}
-	err = d.Set(vmSchemaCdRom, cdrom)
-	if err != nil {
+	if setSchemaVBDs(c, vm, d) != nil {
 		log.Println("[ERROR] ", err)
 		return err
 	}
@@ -750,7 +746,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 	if ok {
 		dXenstoreData := make(map[string]string)
 		for key, value := range dXenstoreDataRaw.(map[string]interface{}) {
-			dXenstoreData[xenstoreVMDataPrefix+key] = value.(string)
+			dXenstoreData[key] = value.(string)
 		}
 
 		if err := c.client.VM.SetXenstoreData(c.session, vm.VMRef, dXenstoreData); err != nil {
@@ -828,7 +824,17 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	var vbds []*VBDDescriptor
+	if vbds, err = queryTemplateVBDs(c, &vm); err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Found %d template vbds", len(vbds))
+
 	if err := c.client.VM.Destroy(c.session, vm.VMRef); err != nil {
+		return err
+	}
+
+	if err = destroyTemplateVDIs(c, vbds); err != nil {
 		return err
 	}
 

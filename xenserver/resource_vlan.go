@@ -26,6 +26,8 @@ import (
 )
 
 const (
+	pifSchemaUUID         = "uuid"
+	vlanSchemaUUID        = "uuid"
 	vlanSchemaTag         = "tag"
 	vlanSchemaPIF         = "pif"
 	vlanSchemaOtherConfig = "other_config"
