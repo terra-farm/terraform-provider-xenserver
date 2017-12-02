@@ -30,7 +30,7 @@ matrix:
   allow_failures:
   - go: tip
 
-after_success:
+before_deploy:
 - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then sudo ln -s /usr/local/Cellar/coreutils/*/libexec/gnubin/sha256sum /usr/local/bin/sha256sum ; fi
 - make dist
 
