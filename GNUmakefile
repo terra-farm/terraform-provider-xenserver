@@ -40,5 +40,8 @@ test-compile:
 	fi
 	go test -c $(TEST) $(TESTARGS)
 
-.PHONY: build test testacc vet fmt fmtcheck errcheck test-compile
+dist:
+	@sh -c "'$(CURDIR)/scripts/dist.sh'"
+
+.PHONY: build test testacc vet fmt fmtcheck errcheck test-compile dist
 
