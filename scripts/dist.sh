@@ -1,5 +1,7 @@
 #/bin/sh
 
+which sha256sum
+
 mkdir dist
 OS="linux"
 case "${OSTYPE}" in
@@ -7,8 +9,8 @@ case "${OSTYPE}" in
   linux*)   OS="linux" ;;
   *)        echo "unknown: ${OSTYPE}" ;;
 esac
-ARCH=$(uname -m)
-cp "${GOPATH}/bin/terraform-provider-xenserver" "dist/terraform-provider-xenserver-${TRAVIS_TAG}-${OS}-${ARCH}"
-md5sum "dist/terraform-provider-xenserver-${TRAVIS_TAG}-${OS}-${ARCH}" | awk '{ print $1 }' > "dist/terraform-provider-xenserver-${TRAVIS_TAG}-${OS}-${ARCH}.md5sum"
+
+cp "${GOPATH}/bin/terraform-provider-xenserver" "dist/terraform-provider-xenserver-${TRAVIS_TAG}-${OS}-amd64"
+sha256sum "dist/terraform-provider-xenserver-${TRAVIS_TAG}-${OS}-amd64" | awk '{ print $1 }' > "dist/terraform-provider-xenserver-${TRAVIS_TAG}-${OS}-amd64.sha256sum"
 ls -lsa dist/
-cat "dist/terraform-provider-xenserver-${TRAVIS_TAG}-${OS}-${ARCH}.md5sum"
+cat "dist/terraform-provider-xenserver-${TRAVIS_TAG}-${OS}-amd64.sha256sum"
