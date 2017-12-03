@@ -4,6 +4,8 @@
 
 ## 0.2.0 (December 2, 2017)
 
+![GitHub downloads](https://img.shields.io/github/downloads/ringods/terraform-provider-xenserver/v0.2.0/total.svg)
+
 NOTES:
 
 * Initial release after maintenance transferred from `@amfranz` to `@ringods`
