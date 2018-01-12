@@ -1,13 +1,6 @@
 ---
-layout: "xenserver"
-page_title: "Provider: XenServer"
-sidebar_current: "docs-xenserver-index"
-description: |-
-  The XenServer provider is used to interact with the resources supported by XenServer. 
-  The provider needs to be configured with the proper credentials before it can be used.
+title: XenServer Provider
 ---
-
-# XenServer Provider
 
 The XenServer provider is used to interact with the resources supported by XenServer.
 The provider needs to be configured with the proper credentials before it can be used.
@@ -100,19 +93,3 @@ The following arguments are supported:
   the XenApi endpoint.
 * `password` - (Required) The password to use for HTTP basic authentication when accessing
   the XenApi endpoint.
-
-## Reference
-
-### Data Sources
-
-* [xenserver_pifs](d/pifs.html.markdown)
-
-### Resources
-
-* [xenserver_network](r/network.html.markdown)
-* [xenserver_sr](r/sr.html.markdown)
-* [xenserver_vbd](r/vbd.html.markdown)
-* [xenserver_vdi](r/vdi.html.markdown)
-* [xenserver_vif](r/vif.html.markdown)
-* [xenserver_vlan](r/vlan.html.markdown)
-* [xenserver_vm](r/vm.html.markdown)

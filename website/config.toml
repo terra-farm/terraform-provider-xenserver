@@ -1,0 +1,15 @@
+baseURL = "https://terraform-provider-xenserver.netlify.com/"
+languageCode = "en-uk"
+title = "Terraform Provider for XenServer"
+theme = "learn"
+
+contentDir = "docs"
+
+# For search functionnality
+[outputs]
+home = [ "HTML", "RSS", "JSON"]
+
+[params]
+  author = "Ringo De Smet"
+	description = "XenServer provider for Terraform"
+	themeVariant = "blue"

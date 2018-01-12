@@ -1,12 +1,6 @@
 ---
-layout: "xenserver"
-page_title: "XenServer: xenserver_vm"
-sidebar_current: "docs-xenserver-resource-vm"
-description: |-
-  Provides a XenServer virtual machine resource. This can be used to create, modify, and delete virtual machines.
+title: "xenserver_vm"
 ---
-
-# xenserver\_vm
 
 Provides a XenServer virtual machine resource. This can be used to create, modify, and delete virtual machines.
 
