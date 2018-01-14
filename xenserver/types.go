@@ -224,6 +224,24 @@ func (this *VMDescriptor) Load(c *Connection) error {
 	return this.Query(c)
 }
 
+func (this *VMDescriptor) Metrics(c *Connection) (metrics xenAPI.VMMetricsRecord, err error) {
+	var metricsRef xenAPI.VMMetricsRef
+	if metricsRef, err = c.client.VM.GetMetrics(c.session, this.VMRef); err != nil {
+		return
+	}
+
+	return c.client.VMMetrics.GetRecord(c.session, metricsRef)
+}
+
+func (this *VMDescriptor) GuestMetrics(c *Connection) (metrics xenAPI.VMGuestMetricsRecord, err error) {
+	var metricsRef xenAPI.VMGuestMetricsRef
+	if metricsRef, err = c.client.VM.GetGuestMetrics(c.session, this.VMRef); err != nil {
+		return
+	}
+
+	return c.client.VMGuestMetrics.GetRecord(c.session, metricsRef)
+}
+
 func (this *VMDescriptor) Query(c *Connection) error {
 	vm, err := c.client.VM.GetRecord(c.session, this.VMRef)
 	if err != nil {
