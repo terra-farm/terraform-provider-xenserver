@@ -60,7 +60,8 @@ resource "xenserver_vm" "test" {
         ethtool-rx = "off"
     }
   }
-}```
+}
+```
 
 ## XenServer versions
 

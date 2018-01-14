@@ -8,8 +8,8 @@
 This has been updated to work with Terraform v.0.10.7
 </div>
 
-All documentation is migrated to the website folder. Start with the main page here:
+Usage documentation can be found on the [Netlify](https://www.netlify.com) website:
 
-> [Xenserver Provider](website/docs/index.html.markdown)
+> [Xenserver Provider](https://terraform-provider-xenserver.netlify.com)
 
-These docs are not yet generated as a static site, so use the Github preview for the moment.
+If you want to add documentation, your starting point is the [website](website/) folder.
