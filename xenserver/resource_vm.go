@@ -165,6 +165,7 @@ func filterVMTemplates(c *Connection, vms []xenAPI.VMRef) ([]xenAPI.VMRef, error
 
 func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
+	d.Partial(true)
 
 	dBaseTemplateName := d.Get(vmSchemaBaseTemplateName).(string)
 
@@ -194,6 +195,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
+	d.SetPartial("cloned")
 
 	vm := &VMDescriptor{
 		VMRef: xenVM,
@@ -240,8 +242,6 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	if err = vm.UpdateVCPUs(c); err != nil {
 		return err
 	}
-
-	d.SetId(vm.UUID)
 
 	dXenstoreDataRaw, ok := d.GetOk(vmSchemaXenstoreData)
 	if ok && dXenstoreDataRaw != nil {
@@ -338,6 +338,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	if err != nil {
 		return err
 	}
+	d.SetPartial("provisioned")
 
 	// reset template flag
 	if vm.IsATemplate {
@@ -346,6 +347,11 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	// Call only after successful creation. Setting it tells TF that the resource is complete.
+	d.SetId(vm.UUID)
+	d.Partial(false)
+
+	// TODO: Seems like this is more about the state of the resource than the creation of the resource?
 	log.Println("[DEBUG] Starting VM")
 	err = c.client.VM.Start(c.session, xenVM, false, false)
 	if err != nil {
