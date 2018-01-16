@@ -32,7 +32,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"xenserver_pifs": dataSourceXenServerPifs(),
+			"xenserver_pifs":             dataSourceXenServerPifs(),
+			"xenserver_vm_guest_metrics": dataSourceVmGuestMetrics(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
