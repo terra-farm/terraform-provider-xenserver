@@ -273,29 +273,31 @@ func (this *VMDescriptor) GuestMetrics(c *Connection) (metrics VMGuestMetrics, e
 			return
 		}
 
-		// Find out number of interfaces
-		lastKey := keys[len(keys)-1:][0]
-		var count int
+		if len(keys) > 0 {
+			// Find out number of interfaces
+			lastKey := keys[len(keys)-1:][0]
+			var count int
 
-		if count, err = strconv.Atoi(re.FindStringSubmatch(lastKey)[1]); err != nil {
-			return
-		}
-		count += 1 // increase by 1 since we obtained index and not length
-
-		metrics.Networks = make([]map[string][]string, count)
-
-		for _, k := range keys {
-			matches := re.FindStringSubmatch(k)
-			var index int
-			if index, err = strconv.Atoi(matches[1]); err != nil {
+			if count, err = strconv.Atoi(re.FindStringSubmatch(lastKey)[1]); err != nil {
 				return
 			}
+			count += 1 // increase by 1 since we obtained index and not length
 
-			if metrics.Networks[index] == nil {
-				metrics.Networks[index] = make(map[string][]string)
+			metrics.Networks = make([]map[string][]string, count)
+
+			for _, k := range keys {
+				matches := re.FindStringSubmatch(k)
+				var index int
+				if index, err = strconv.Atoi(matches[1]); err != nil {
+					return
+				}
+
+				if metrics.Networks[index] == nil {
+					metrics.Networks[index] = make(map[string][]string)
+				}
+
+				metrics.Networks[index][matches[2]] = append(metrics.Networks[index][matches[2]], metricsRecord.Networks[k])
 			}
-
-			metrics.Networks[index][matches[2]] = append(metrics.Networks[index][matches[2]], metricsRecord.Networks[k])
 		}
 	}
 
