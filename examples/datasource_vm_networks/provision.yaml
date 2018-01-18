@@ -1,0 +1,5 @@
+---
+- hosts: all
+  tasks:
+    - hostname:
+        name: "{{ provisioned_host_name }}"
