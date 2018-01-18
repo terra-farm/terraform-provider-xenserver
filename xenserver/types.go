@@ -132,6 +132,12 @@ type VLANDescriptor struct {
 	VLANRef xenAPI.VLANRef
 }
 
+type VMMetrics struct {
+	UUID        string
+	StartTime   time.Time
+	InstallTime time.Time
+}
+
 type VMGuestMetrics struct {
 	UUID              string
 	Disks             interface{}
@@ -304,13 +310,24 @@ func (this *VMDescriptor) GuestMetrics(c *Connection) (metrics VMGuestMetrics, e
 	return
 }
 
-func (this *VMDescriptor) Metrics(c *Connection) (metrics xenAPI.VMMetricsRecord, err error) {
+func (this *VMDescriptor) Metrics(c *Connection) (metrics VMMetrics, err error) {
+	var metricsRecord xenAPI.VMMetricsRecord
 	var metricsRef xenAPI.VMMetricsRef
 	if metricsRef, err = c.client.VM.GetMetrics(c.session, this.VMRef); err != nil {
 		return
 	}
 
-	return c.client.VMMetrics.GetRecord(c.session, metricsRef)
+	if metricsRecord, err = c.client.VMMetrics.GetRecord(c.session, metricsRef); err != nil {
+		return
+	}
+
+	metrics = VMMetrics{
+		UUID:        metricsRecord.UUID,
+		StartTime:   metricsRecord.StartTime,
+		InstallTime: metricsRecord.LastUpdated,
+	}
+
+	return
 }
 
 func (this *VMDescriptor) Query(c *Connection) error {
