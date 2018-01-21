@@ -165,6 +165,7 @@ func filterVMTemplates(c *Connection, vms []xenAPI.VMRef) ([]xenAPI.VMRef, error
 
 func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
+	d.Partial(true)
 
 	dBaseTemplateName := d.Get(vmSchemaBaseTemplateName).(string)
 
@@ -203,6 +204,9 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	d.SetPartial(vmSchemaNameLabel)
+	d.SetId(vm.UUID)
+
 	// Reset base template name
 	otherConfig := vm.OtherConfig
 	otherConfig["base_template_name"] = dBaseTemplateName
@@ -211,37 +215,48 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	// Memory configuration
+	updatedFields := make([]string, 0, 5)
 	mem, ok := d.GetOk(vmSchemaStaticMemoryMin)
 	if ok {
 		vm.StaticMemory.Min = mem.(int)
+		updatedFields = append(updatedFields, vmSchemaStaticMemoryMin)
 	}
 
 	mem, ok = d.GetOk(vmSchemaStaticMemoryMax)
 	if ok {
 		vm.StaticMemory.Max = mem.(int)
+		updatedFields = append(updatedFields, vmSchemaStaticMemoryMax)
 	}
 
 	mem, ok = d.GetOk(vmSchemaDynamicMemoryMin)
 	if ok {
 		vm.DynamicMemory.Min = mem.(int)
+		updatedFields = append(updatedFields, vmSchemaDynamicMemoryMin)
 	}
 
 	mem, ok = d.GetOk(vmSchemaDynamicMemoryMax)
 	if ok {
 		vm.DynamicMemory.Max = mem.(int)
+		updatedFields = append(updatedFields, vmSchemaDynamicMemoryMax)
 	}
 
-	if err = vm.UpdateMemory(c); err != nil {
-		return err
+	if (len(updatedFields) > 0) {
+		if err = vm.UpdateMemory(c); err != nil {
+			return err
+		}
+		for _, f := range updatedFields {
+			d.SetPartial(f)
+		}
+		updatedFields = make([]string, 0, 5)
 	}
 
 	// Set VCPUs number
 	vm.VCPUCount = d.Get(vmSchemaVcpus).(int)
 	if err = vm.UpdateVCPUs(c); err != nil {
 		return err
+	} else {
+		d.SetPartial(vmSchemaVcpus)
 	}
-
-	d.SetId(vm.UUID)
 
 	dXenstoreDataRaw, ok := d.GetOk(vmSchemaXenstoreData)
 	if ok && dXenstoreDataRaw != nil {
@@ -253,6 +268,8 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		err = c.client.VM.SetXenstoreData(c.session, vm.VMRef, vm.XenstoreData)
 		if err != nil {
 			return err
+		} else {
+			d.SetPartial(vmSchemaXenstoreData)
 		}
 	}
 
@@ -279,22 +296,33 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 			return err
 		}
 	}
+	d.SetPartial(vmSchemaNetworkInterfaces)
 
 	log.Println("[DEBUG] Creating CDs")
 	if err = createVBDs(c, d.Get(vmSchemaCdRom).(*schema.Set).List(), xenAPI.VbdTypeCD, vm); err != nil {
 		log.Println("[ERROR] ", err)
 		return err
+	} else {
+		updatedFields = append(updatedFields, vmSchemaCdRom)
 	}
 
 	log.Println("[DEBUG] Creating HDDs")
 	if err = createVBDs(c, d.Get(vmSchemaHardDrive).(*schema.Set).List(), xenAPI.VbdTypeDisk, vm); err != nil {
 		log.Println("[ERROR] ", err)
 		return err
+	} else {
+		updatedFields = append(updatedFields, vmSchemaHardDrive)
 	}
+
 
 	if setSchemaVBDs(c, vm, d) != nil {
 		log.Println("[ERROR] ", err)
 		return err
+	} else {
+		for _, f := range updatedFields {
+			d.SetPartial(f)
+		}
+		updatedFields = make([]string, 0, 5)
 	}
 
 	if _order, ok := d.GetOk(vmSchemaBootOrder); ok {
@@ -304,6 +332,8 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 
 	if err = c.client.VM.SetHVMBootParams(c.session, vm.VMRef, vm.HVMBootParameters); err != nil {
 		return err
+	} else {
+		d.SetPartial(vmSchemaBootOrder)
 	}
 
 	if _coresPerSocket, ok := d.GetOk(vmSchemaCoresPerSocket); ok {
@@ -331,6 +361,8 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 
 	if err = c.client.VM.SetPlatform(c.session, vm.VMRef, vm.Platform); err != nil {
 		return err
+	} else {
+		d.SetPartial(vmSchemaCoresPerSocket)
 	}
 
 	log.Println("[DEBUG] Provisioning VM")
@@ -346,6 +378,9 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	d.Partial(false)
+
+	// TODO: Seems like this is more about the state of the resource than the creation of the resource?
 	log.Println("[DEBUG] Starting VM")
 	err = c.client.VM.Start(c.session, xenVM, false, false)
 	if err != nil {
@@ -609,7 +644,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 				}
 			}
 		}
-
+		d.SetPartial(vmSchemaNetworkInterfaces)
 	}
 
 	if d.HasChange(vmSchemaCdRom) {
@@ -675,6 +710,7 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 				}
 			}
 		}
+		d.SetPartial(vmSchemaCdRom)
 	}
 
 	if d.HasChange(vmSchemaHardDrive) {
