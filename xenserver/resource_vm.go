@@ -240,7 +240,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 		updatedFields = append(updatedFields, vmSchemaDynamicMemoryMax)
 	}
 
-	if (len(updatedFields) > 0) {
+	if len(updatedFields) > 0 {
 		if err = vm.UpdateMemory(c); err != nil {
 			return err
 		}
@@ -313,7 +313,6 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	} else {
 		updatedFields = append(updatedFields, vmSchemaHardDrive)
 	}
-
 
 	if setSchemaVBDs(c, vm, d) != nil {
 		log.Println("[ERROR] ", err)
