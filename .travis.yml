@@ -8,8 +8,9 @@ os:
   - osx
 
 before_install:
-- openssl aes-256-cbc -K $encrypted_f2f8be5bc079_key -iv $encrypted_f2f8be5bc079_iv
-  -in gogetcookie.sh.enc -out scripts/gogetcookie.sh -d
+- if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
+    openssl aes-256-cbc -K $encrypted_f2f8be5bc079_key -iv $encrypted_f2f8be5bc079_iv -in gogetcookie.sh.enc -out scripts/gogetcookie.sh -d;
+  fi
 
 install:
 # This script is used by the Travis build to install a cookie for
