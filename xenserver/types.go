@@ -24,6 +24,9 @@ import (
 	"strconv"
 
 	"github.com/ringods/go-xen-api-client"
+	"regexp"
+	"sort"
+	"time"
 )
 
 type Range struct {
@@ -129,6 +132,27 @@ type VLANDescriptor struct {
 	VLANRef xenAPI.VLANRef
 }
 
+type VMMetrics struct {
+	UUID        string
+	StartTime   time.Time
+	InstallTime time.Time
+}
+
+type VMGuestMetrics struct {
+	UUID              string
+	Disks             interface{}
+	Networks          []map[string][]string
+	Memory            interface{}
+	OSVersion         interface{}
+	PVDriversVersion  interface{}
+	PVDriversDetected bool
+	PVDriversUpToDate bool
+	CanUseHotplugVbd  string
+	CanUseHotplugVif  string
+	Live              bool
+	LastUpdated       time.Time
+}
+
 func (this *NetworkDescriptor) Load(c *Connection) error {
 	var network xenAPI.NetworkRef
 
@@ -222,6 +246,88 @@ func (this *VMDescriptor) Load(c *Connection) error {
 	this.VMRef = vm
 
 	return this.Query(c)
+}
+
+func (this *VMDescriptor) GuestMetrics(c *Connection) (metrics VMGuestMetrics, err error) {
+	var metricsRef xenAPI.VMGuestMetricsRef
+	var metricsRecord xenAPI.VMGuestMetricsRecord
+	if metricsRef, err = c.client.VM.GetGuestMetrics(c.session, this.VMRef); err != nil {
+		return
+	}
+
+	if metricsRecord, err = c.client.VMGuestMetrics.GetRecord(c.session, metricsRef); err == nil {
+		metrics.UUID = metricsRecord.UUID
+		metrics.Disks = metricsRecord.Disks
+		metrics.Memory = metricsRecord.Memory
+		metrics.OSVersion = metricsRecord.OSVersion
+		metrics.PVDriversVersion = metricsRecord.PVDriversVersion
+		metrics.PVDriversDetected = metricsRecord.PVDriversDetected
+		metrics.PVDriversUpToDate = metricsRecord.PVDriversUpToDate
+		metrics.CanUseHotplugVbd = string(metricsRecord.CanUseHotplugVbd)
+		metrics.CanUseHotplugVif = string(metricsRecord.CanUseHotplugVif)
+		metrics.Live = metricsRecord.Live
+		metrics.LastUpdated = metricsRecord.LastUpdated
+
+		var keys []string
+		for k := range metricsRecord.Networks {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		var re *regexp.Regexp
+		if re, err = regexp.Compile("([0-9]+)/(ipv?6?)/?[0-9]*"); err != nil {
+			return
+		}
+
+		if len(keys) > 0 {
+			// Find out number of interfaces
+			lastKey := keys[len(keys)-1:][0]
+			var count int
+
+			if count, err = strconv.Atoi(re.FindStringSubmatch(lastKey)[1]); err != nil {
+				return
+			}
+			count += 1 // increase by 1 since we obtained index and not length
+
+			metrics.Networks = make([]map[string][]string, count)
+
+			for _, k := range keys {
+				matches := re.FindStringSubmatch(k)
+				var index int
+				if index, err = strconv.Atoi(matches[1]); err != nil {
+					return
+				}
+
+				if metrics.Networks[index] == nil {
+					metrics.Networks[index] = make(map[string][]string)
+				}
+
+				metrics.Networks[index][matches[2]] = append(metrics.Networks[index][matches[2]], metricsRecord.Networks[k])
+			}
+		}
+	}
+
+	return
+}
+
+func (this *VMDescriptor) Metrics(c *Connection) (metrics VMMetrics, err error) {
+	var metricsRecord xenAPI.VMMetricsRecord
+	var metricsRef xenAPI.VMMetricsRef
+	if metricsRef, err = c.client.VM.GetMetrics(c.session, this.VMRef); err != nil {
+		return
+	}
+
+	if metricsRecord, err = c.client.VMMetrics.GetRecord(c.session, metricsRef); err != nil {
+		return
+	}
+
+	metrics = VMMetrics{
+		UUID:        metricsRecord.UUID,
+		StartTime:   metricsRecord.StartTime,
+		InstallTime: metricsRecord.LastUpdated,
+	}
+
+	return
 }
 
 func (this *VMDescriptor) Query(c *Connection) error {
