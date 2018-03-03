@@ -368,7 +368,7 @@ func createVBDs(c *Connection, s []interface{}, vbdType xenAPI.VbdType, vm *VMDe
 	for _, schm := range s {
 		data := schm.(map[string]interface{})
 
-		if _, ok := data[vbdSchemaUserDevice]; ok {
+		if data[vbdSchemaUserDevice] != "" {
 			continue
 		}
 
