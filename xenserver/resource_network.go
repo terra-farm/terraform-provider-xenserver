@@ -85,6 +85,7 @@ func resourceNetworkCreate(d *schema.ResourceData, m interface{}) error {
 		MTU:             d.Get(networkSchemaMTU).(int),
 		Bridge:          d.Get(networkSchemaBridge).(string),
 		OtherConfig:     other_config,
+		Managed:         true,
 	}
 
 	if networkRef, err := c.client.Network.Create(c.session, networkRecord); err == nil {
