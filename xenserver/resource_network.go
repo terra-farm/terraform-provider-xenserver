@@ -30,6 +30,7 @@ const (
 	networkSchemaDescription = "description"
 	networkSchemaBridge      = "bridge"
 	networkSchemaMTU         = "mtu"
+	networkSchemaOtherConfig = "other_config"
 )
 
 func resourceNetwork() *schema.Resource {
@@ -61,6 +62,11 @@ func resourceNetwork() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+
+			networkSchemaOtherConfig: &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -68,11 +74,17 @@ func resourceNetwork() *schema.Resource {
 func resourceNetworkCreate(d *schema.ResourceData, m interface{}) error {
 	c := m.(*Connection)
 
+	var other_config = make(map[string]string)
+	for k, v := range d.Get(networkSchemaOtherConfig).(map[string]interface{}) {
+		other_config[k] = v.(string)
+	}
+
 	networkRecord := xenAPI.NetworkRecord{
 		NameLabel:       d.Get(networkSchemaName).(string),
 		NameDescription: d.Get(networkSchemaDescription).(string),
 		MTU:             d.Get(networkSchemaMTU).(int),
 		Bridge:          d.Get(networkSchemaBridge).(string),
+		OtherConfig:     other_config,
 	}
 
 	if networkRef, err := c.client.Network.Create(c.session, networkRecord); err == nil {
