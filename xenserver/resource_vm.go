@@ -45,6 +45,7 @@ const (
 	vmSchemaVcpus                     = "vcpus"
 	vmSchemaCoresPerSocket            = "cores_per_socket"
 	vmSchemaXenstoreData              = "xenstore_data"
+	vmSchemaOtherConfig               = "other_config"
 )
 
 func resourceVM() *schema.Resource {
@@ -145,6 +146,11 @@ func resourceVM() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			vmSchemaOtherConfig: &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -207,9 +213,14 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetPartial(vmSchemaNameLabel)
 	d.SetId(vm.UUID)
 
-	// Reset base template name
 	otherConfig := vm.OtherConfig
+	for k, v := range d.Get(vmSchemaOtherConfig).(map[string]interface{}) {
+		otherConfig[k] = v.(string)
+	}
+
+	// Reset base template name
 	otherConfig["base_template_name"] = dBaseTemplateName
+
 	if err = c.client.VM.SetOtherConfig(c.session, vm.VMRef, otherConfig); err != nil {
 		return err
 	}
