@@ -213,7 +213,7 @@ func readVBDs(c *Connection, vm *VMDescriptor) ([]map[string]interface{}, []map[
 
 	hdd := make([]map[string]interface{}, 0, len(vmVBDs))
 	cdrom := make([]map[string]interface{}, 0, len(vmVBDs))
-	log.Println(fmt.Sprintf("[DEBUG] Got %d VDIs", len(vmVBDs)))
+	log.Println(fmt.Sprintf("[DEBUG] Got %d VBDs", len(vmVBDs)))
 
 	for _, _vbd := range vmVBDs {
 		vbd := VBDDescriptor{
@@ -368,7 +368,7 @@ func createVBDs(c *Connection, s []interface{}, vbdType xenAPI.VbdType, vm *VMDe
 	for _, schm := range s {
 		data := schm.(map[string]interface{})
 
-		if _, ok := data[vbdSchemaUserDevice]; ok {
+		if data[vbdSchemaUserDevice] != "" {
 			continue
 		}
 
