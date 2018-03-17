@@ -1,6 +1,6 @@
 # Changes
 
-## 0.2.1 (Unreleased)
+## 0.3.0 (March 17, 2018)
 
 FEATURES:
 
