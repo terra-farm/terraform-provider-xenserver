@@ -5,6 +5,7 @@
 FEATURES:
 
 * **New Data Source:** `xenserver_pif` #29 by @joncave
+* **New Data Source:** `xenserver_sr` #30 by @joncave
 
 ENHANCEMENTS:
 
