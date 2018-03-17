@@ -33,6 +33,9 @@ resource "xenserver_vm" "web" {
     hard_drive {
       vdi_uuid = "<desired vdi>"
     }
+    other_config {
+        auto_poweron = "true"
+    }
 }
 ```
 
@@ -61,6 +64,8 @@ The `cdrom` block supports:
 The `hard_drive` block supports:
 
 * `vdi_uuid` - 
+
+The `other_config` block sets any number of given key-value pairs in the VM's `other-config` map.
 
 ## Attributes Reference
 
