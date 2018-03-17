@@ -2,6 +2,8 @@
 
 ## 0.3.0 (March 17, 2018)
 
+![GitHub downloads](https://img.shields.io/github/downloads/ringods/terraform-provider-xenserver/v0.3.0/total.svg)
+
 FEATURES:
 
 * **New Data Source:** `xenserver_pif` [#29](https://github.com/ringods/terraform-provider-xenserver/pull/29) by @joncave
