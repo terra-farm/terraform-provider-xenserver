@@ -1,7 +1,7 @@
 baseURL = "https://terraform-provider-xenserver.netlify.com/"
 languageCode = "en-uk"
 title = "Terraform Provider for XenServer"
-theme = "learn"
+theme = "docdock"
 
 contentDir = "docs"
 
@@ -10,6 +10,20 @@ contentDir = "docs"
 home = [ "HTML", "RSS", "JSON"]
 
 [params]
-  author = "Ringo De Smet"
-	description = "XenServer provider for Terraform"
+  editURL = "https://github.com/ringods/terraform-provider-xenserver/edit/master/website/docs/"
+	themeStyle = "flex"
+	enableGitInfo = true
 	themeVariant = "blue"
+	disableNavChevron = true # set true to hide next/prev chevron, default is false
+
+[[menu.shortcuts]]
+pre = "<h3>More</h3>"
+name = "<i class='fa fa-github'></i> <label>Github repo</label>"
+identifier = "ds"
+url = "https://github.com/ringods/terraform-provider-xenserver"
+weight = 10
+
+[[menu.shortcuts]]
+name = "<i class='fa fa-cloud-download'></i> <label>Download</label>"
+url = "https://github.com/ringods/terraform-provider-xenserver/releases/latest"
+weight = 20
