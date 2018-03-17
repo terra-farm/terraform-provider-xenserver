@@ -2,6 +2,18 @@
 
 ## 0.2.1 (Unreleased)
 
+FEATURES:
+
+* **New Data Source:** `xenserver_pif` #29 by @joncave
+
+ENHANCEMENTS:
+
+* Bootstrapped a static Hugo site (several commits) by @ringods
+
+BUG FIXES:
+
+* resource/xenserver_vm: VDI without VBD causes silent failure to create VM #21 via #23 by @briantopping
+
 ## 0.2.0 (December 2, 2017)
 
 ![GitHub downloads](https://img.shields.io/github/downloads/ringods/terraform-provider-xenserver/v0.2.0/total.svg)
@@ -12,7 +24,7 @@ NOTES:
 
 FEATURES:
 
-* **New Data Source:** `xenserver_pifs`
+* **New Data Source:** `xenserver_pifs` by @ringods
 
 IMPROVEMENTS:
 

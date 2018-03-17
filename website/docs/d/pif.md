@@ -18,11 +18,11 @@ data "xenserver_pif" "management" {
 resource "xenserver_vm" "demo-vm" {
   // ...
   network_interface {
-    network_uuid = "${data.xenserver_pif.management.network_uuid}"
+    network = "${data.xenserver_pif.management.network}"
     device = 0
   }
   network_interface {
-    network_uuid = "${data.xenserver_pif.eth0.network_uuid}"
+    network = "${data.xenserver_pif.eth0.network}"
     device = 1
   }
   // ...

@@ -13,16 +13,16 @@ func dataSourceXenServerPif() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"device": &schema.Schema{
 				Type:        schema.TypeString,
-				Description: "The machine-readable name of the interface (e.g. eth0)",
+				Description: "The machine-readable name of the physical interface (PIF) (e.g. eth0)",
 				Optional:    true,
 			},
 			"management": &schema.Schema{
 				Type:        schema.TypeBool,
-				Description: "Indicates whether the control software is listening for connections on this interface",
+				Description: "Indicates whether the control software is listening for connections on this physical interface",
 				Optional:    true,
 			},
 			// Computed values
-			"network_uuid": &schema.Schema{
+			"network": &schema.Schema{
 				Type:        schema.TypeString,
 				Description: "UUID of the virtual network to which this PIF is connected",
 				Computed:    true,
@@ -53,7 +53,7 @@ func dataSourceXenServerPifRead(d *schema.ResourceData, meta interface{}) error 
 				if err = network.Query(c); err != nil {
 					return err
 				}
-				d.Set("network_uuid", network.UUID)
+				d.Set("network", network.UUID)
 
 				found = true
 				break
