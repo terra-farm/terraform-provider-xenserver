@@ -25,7 +25,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/ringods/go-xen-api-client"
+	"github.com/terra-farm/go-xen-api-client"
 )
 
 const (

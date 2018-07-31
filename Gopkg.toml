@@ -27,4 +27,4 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/ringods/go-xen-api-client"
+  name = "github.com/terra-farm/go-xen-api-client"

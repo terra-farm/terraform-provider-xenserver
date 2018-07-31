@@ -1,7 +1,7 @@
 package xenserver
 
 import (
-	"github.com/ringods/go-xen-api-client"
+	"github.com/terra-farm/go-xen-api-client"
 )
 
 // Config ...
