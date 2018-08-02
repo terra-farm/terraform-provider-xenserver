@@ -45,5 +45,5 @@ deploy:
   skip_cleanup: true
   tag_name: $TRAVIS_TAG
   on:
-    repo: ringods/terraform-provider-xenserver
+    repo: terra-farm/terraform-provider-xenserver
     tags: true
