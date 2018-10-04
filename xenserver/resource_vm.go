@@ -636,6 +636,9 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 					if err := c.client.VIF.Destroy(c.session, vifToRemove.VIFRef); err != nil {
 						return err
 					}
+
+					// Decrement VIFCount after removal success
+					vm.VIFCount--
 				}
 			}
 		}
