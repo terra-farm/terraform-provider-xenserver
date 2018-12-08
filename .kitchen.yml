@@ -1,0 +1,26 @@
+---
+driver:
+  name: vagrant
+  vm_hostname: false
+
+provisioner:
+  name: terraform
+
+transport:
+  name: ssh
+
+verifier:
+  name: terraform
+  groups:
+    - name: basic
+      controls:
+        - file_check
+
+platforms:
+  - name: xenserver-7.2
+    driver:
+      box: xenserver-7.2
+      box_url: file:///Users/ringods/Projects/personal/xenserver-images/builds/xenserver-7.2.0-x86_64.virtualbox.box
+
+suites:
+  - name: datasource_pifs
