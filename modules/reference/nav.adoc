@@ -1,14 +1,12 @@
-Data Sources
-
-* xref:datasource_pif.adoc[pif]
-* xref:datasource_pifs.adoc[pifs]
-* xref:datasource_sr.adoc[sr]
-
-Resources
-
-* xref:resource_sr.adoc[sr]
-* xref:resource_vbd.adoc[vbd]
-* xref:resource_vdi.adoc[vdi]
-* xref:resource_vif.adoc[vif]
-* xref:resource_vlan.adoc[vlan]
-* xref:resource_vm.adoc[vm]
+* Reference
+** Data Sources
+*** xref:datasource_pif.adoc[pif]
+*** xref:datasource_pifs.adoc[pifs]
+*** xref:datasource_sr.adoc[sr]
+** Resources
+*** xref:resource_sr.adoc[sr]
+*** xref:resource_vbd.adoc[vbd]
+*** xref:resource_vdi.adoc[vdi]
+*** xref:resource_vif.adoc[vif]
+*** xref:resource_vlan.adoc[vlan]
+*** xref:resource_vm.adoc[vm]
