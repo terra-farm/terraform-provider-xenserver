@@ -2,5 +2,6 @@ name: provider-xenserver
 title: XenServer Provider
 version: 'master' 
 start_page: ROOT:index.adoc 
-nav: 
+nav:
 - modules/ROOT/nav.adoc
+- modules/reference/nav.adoc
