@@ -64,7 +64,7 @@ resource "xenserver_vm" "test" {
 == XenServer versions
 
 Both backward and forward compatibility with the XenApi is mostly defined by the
-[go-xen-api-client](https://github.com/amfranz/go-xen-api-client) Go library.
+link::https://github.com/amfranz/go-xen-api-client[go-xen-api-client] Go library.
 
 Tested succesfully against:
 
