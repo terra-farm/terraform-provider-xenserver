@@ -22,7 +22,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/terra-farm/go-xen-api-client"
+	xenapi "github.com/terra-farm/go-xen-api-client"
 )
 
 const (
@@ -197,8 +197,8 @@ func resourceVLANExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	}
 
 	if err := vlan.Load(c); err != nil {
-		if xenErr, ok := err.(*xenAPI.Error); ok {
-			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
+		if xenErr, ok := err.(*xenapi.Error); ok {
+			if xenErr.Code() == xenapi.ERR_UUID_INVALID {
 				return false, nil
 			}
 		}

@@ -25,7 +25,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/terra-farm/go-xen-api-client"
+	xenapi "github.com/terra-farm/go-xen-api-client"
 )
 
 const (
@@ -155,8 +155,8 @@ func resourceVM() *schema.Resource {
 	}
 }
 
-func filterVMTemplates(c *Connection, vms []xenAPI.VMRef) ([]xenAPI.VMRef, error) {
-	var templates []xenAPI.VMRef
+func filterVMTemplates(c *Connection, vms []xenapi.VMRef) ([]xenapi.VMRef, error) {
+	var templates []xenapi.VMRef
 	for _, vm := range vms {
 		isATemplate, err := c.client.VM.GetIsATemplate(c.session, vm)
 		if err != nil {
@@ -310,7 +310,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	d.SetPartial(vmSchemaNetworkInterfaces)
 
 	log.Println("[DEBUG] Creating CDs")
-	if err = createVBDs(c, d.Get(vmSchemaCdRom).(*schema.Set).List(), xenAPI.VbdTypeCD, vm); err != nil {
+	if err = createVBDs(c, d.Get(vmSchemaCdRom).(*schema.Set).List(), xenapi.VbdTypeCD, vm); err != nil {
 		log.Println("[ERROR] ", err)
 		return err
 	} else {
@@ -318,7 +318,7 @@ func resourceVMCreate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	log.Println("[DEBUG] Creating HDDs")
-	if err = createVBDs(c, d.Get(vmSchemaHardDrive).(*schema.Set).List(), xenAPI.VbdTypeDisk, vm); err != nil {
+	if err = createVBDs(c, d.Get(vmSchemaHardDrive).(*schema.Set).List(), xenapi.VbdTypeDisk, vm); err != nil {
 		log.Println("[ERROR] ", err)
 		return err
 	} else {
@@ -408,8 +408,8 @@ func resourceVMRead(d *schema.ResourceData, m interface{}) error {
 		UUID: d.Id(),
 	}
 	if err := vm.Load(c); err != nil {
-		if xenErr, ok := err.(*xenAPI.Error); ok {
-			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
+		if xenErr, ok := err.(*xenapi.Error); ok {
+			if xenErr.Code() == xenapi.ERR_UUID_INVALID {
 				d.SetId("")
 				return nil
 			}
@@ -519,8 +519,8 @@ func resourceVMUpdate(d *schema.ResourceData, m interface{}) error {
 		UUID: d.Id(),
 	}
 	if err := vm.Load(c); err != nil {
-		if xenErr, ok := err.(*xenAPI.Error); ok {
-			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
+		if xenErr, ok := err.(*xenapi.Error); ok {
+			if xenErr.Code() == xenapi.ERR_UUID_INVALID {
 				d.SetId("")
 				return nil
 			}
@@ -843,8 +843,8 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 		UUID: d.Id(),
 	}
 	if err := vm.Load(c); err != nil {
-		if xenErr, ok := err.(*xenAPI.Error); ok {
-			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
+		if xenErr, ok := err.(*xenapi.Error); ok {
+			if xenErr.Code() == xenapi.ERR_UUID_INVALID {
 				d.SetId("")
 				return nil
 			}
@@ -853,7 +853,7 @@ func resourceVMDelete(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	if vm.PowerState == xenAPI.VMPowerStateRunning {
+	if vm.PowerState == xenapi.VMPowerStateRunning {
 		if err := c.client.VM.HardShutdown(c.session, vm.VMRef); err != nil {
 			return err
 		}
@@ -893,8 +893,8 @@ func resourceVMExists(d *schema.ResourceData, m interface{}) (bool, error) {
 
 	_, err := c.client.VM.GetByUUID(c.session, d.Id())
 	if err != nil {
-		if xenErr, ok := err.(*xenAPI.Error); ok {
-			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
+		if xenErr, ok := err.(*xenapi.Error); ok {
+			if xenErr.Code() == xenapi.ERR_UUID_INVALID {
 				return false, nil
 			}
 		}

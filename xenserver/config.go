@@ -1,7 +1,7 @@
 package xenserver
 
 import (
-	"github.com/terra-farm/go-xen-api-client"
+	xenapi "github.com/terra-farm/go-xen-api-client"
 )
 
 // Config ...
@@ -13,13 +13,13 @@ type Config struct {
 
 // Connection ...
 type Connection struct {
-	client  *xenAPI.Client
-	session xenAPI.SessionRef
+	client  *xenapi.Client
+	session xenapi.SessionRef
 }
 
 // NewConnection ...
 func (cfg *Config) NewConnection() (*Connection, error) {
-	client, err := xenAPI.NewClient(cfg.URL, nil)
+	client, err := xenapi.NewClient(cfg.URL, nil)
 	if err != nil {
 		return nil, err
 	}

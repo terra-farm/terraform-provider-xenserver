@@ -29,7 +29,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/terra-farm/go-xen-api-client"
+	xenapi "github.com/terra-farm/go-xen-api-client"
 )
 
 const (
@@ -104,7 +104,7 @@ func createVIF(c *Connection, vif *VIFDescriptor) (*VIFDescriptor, error) {
 		vif.DeviceOrder = vif.VM.VIFCount
 	}
 
-	vifObject := xenAPI.VIFRecord{
+	vifObject := xenapi.VIFRecord{
 		VM:               vif.VM.VMRef,
 		Network:          vif.Network.NetworkRef,
 		MTU:              vif.MTU,
@@ -112,7 +112,7 @@ func createVIF(c *Connection, vif *VIFDescriptor) (*VIFDescriptor, error) {
 		MAC:              vif.MAC,
 		Device:           strconv.Itoa(vif.DeviceOrder),
 		OtherConfig:      vif.OtherConfig,
-		LockingMode:      xenAPI.VifLockingModeNetworkDefault,
+		LockingMode:      xenapi.VifLockingModeNetworkDefault,
 	}
 
 	vifRef, err := c.client.VIF.Create(c.session, vifObject)
@@ -130,7 +130,7 @@ func createVIF(c *Connection, vif *VIFDescriptor) (*VIFDescriptor, error) {
 
 	log.Println(fmt.Sprintf("[DEBUG] VIF  UUID %q", vif.UUID))
 
-	if vif.VM.PowerState == xenAPI.VMPowerStateRunning {
+	if vif.VM.PowerState == xenapi.VMPowerStateRunning {
 		err = c.client.VIF.Plug(c.session, vif.VIFRef)
 		if err != nil {
 			return nil, err

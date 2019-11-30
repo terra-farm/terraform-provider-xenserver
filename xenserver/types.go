@@ -23,7 +23,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/terra-farm/go-xen-api-client"
+	xenapi "github.com/terra-farm/go-xen-api-client"
 )
 
 type Range struct {
@@ -38,14 +38,14 @@ type NetworkDescriptor struct {
 	Bridge      string
 	MTU         int
 
-	NetworkRef xenAPI.NetworkRef
+	NetworkRef xenapi.NetworkRef
 }
 
 type VMDescriptor struct {
 	UUID              string
 	Name              string
 	Description       string
-	PowerState        xenAPI.VMPowerState
+	PowerState        xenapi.VMPowerState
 	IsPV              bool
 	StaticMemory      Range
 	DynamicMemory     Range
@@ -59,7 +59,7 @@ type VMDescriptor struct {
 	Platform          map[string]string
 	IsATemplate       bool
 
-	VMRef xenAPI.VMRef
+	VMRef xenapi.VMRef
 }
 
 type VIFDescriptor struct {
@@ -72,7 +72,7 @@ type VIFDescriptor struct {
 	DeviceOrder        int
 	OtherConfig        map[string]string
 
-	VIFRef xenAPI.VIFRef
+	VIFRef xenapi.VIFRef
 }
 
 type SRDescriptor struct {
@@ -84,7 +84,7 @@ type SRDescriptor struct {
 	ContentType string
 	Shared      bool
 
-	SRRef xenAPI.SRRef
+	SRRef xenapi.SRRef
 }
 
 type VDIDescriptor struct {
@@ -95,7 +95,7 @@ type VDIDescriptor struct {
 	IsReadOnly bool
 	Size       int
 
-	VDIRef xenAPI.VDIRef
+	VDIRef xenapi.VDIRef
 }
 
 type VBDDescriptor struct {
@@ -104,19 +104,19 @@ type VBDDescriptor struct {
 	VDI              *VDIDescriptor
 	Device           string
 	UserDevice       string
-	Mode             xenAPI.VbdMode
-	Type             xenAPI.VbdType
+	Mode             xenapi.VbdMode
+	Type             xenapi.VbdType
 	Bootable         bool
 	OtherConfig      map[string]string
 	IsTemplateDevice bool
 
-	VBDRef xenAPI.VBDRef
+	VBDRef xenapi.VBDRef
 }
 
 type PIFDescriptor struct {
 	UUID string
 
-	PIFRef xenAPI.PIFRef
+	PIFRef xenapi.PIFRef
 }
 
 type VLANDescriptor struct {
@@ -126,11 +126,11 @@ type VLANDescriptor struct {
 	UntaggedPIF PIFDescriptor
 	OtherConfig map[string]string
 
-	VLANRef xenAPI.VLANRef
+	VLANRef xenapi.VLANRef
 }
 
 func (this *NetworkDescriptor) Load(c *Connection) error {
-	var network xenAPI.NetworkRef
+	var network xenapi.NetworkRef
 
 	hasNetName := false
 	hasNetUUID := false
@@ -185,7 +185,7 @@ func (this *NetworkDescriptor) Query(c *Connection) error {
 }
 
 func (this *VMDescriptor) Load(c *Connection) error {
-	var vm xenAPI.VMRef
+	var vm xenapi.VMRef
 
 	hasVMName := false
 	hasVMUUID := false
@@ -280,7 +280,7 @@ func (this *VMDescriptor) UpdateVCPUs(c *Connection) error {
 }
 
 func (this *VIFDescriptor) Load(c *Connection) error {
-	var VIFRef xenAPI.VIFRef
+	var VIFRef xenapi.VIFRef
 	var err error
 	if VIFRef, err = c.client.VIF.GetByUUID(c.session, this.UUID); err != nil {
 		return err
@@ -291,7 +291,7 @@ func (this *VIFDescriptor) Load(c *Connection) error {
 }
 
 func (this *VIFDescriptor) Query(c *Connection) error {
-	var vif xenAPI.VIFRecord
+	var vif xenapi.VIFRecord
 	var err error
 	if vif, err = c.client.VIF.GetRecord(c.session, this.VIFRef); err != nil {
 		return err
@@ -326,7 +326,7 @@ func (this *VIFDescriptor) Query(c *Connection) error {
 }
 
 func (this *SRDescriptor) Load(c *Connection) error {
-	var sr xenAPI.SRRef
+	var sr xenapi.SRRef
 
 	hasSRName := false
 	hasSRUUID := false
@@ -383,7 +383,7 @@ func (this *SRDescriptor) Query(c *Connection) error {
 }
 
 func (this *VDIDescriptor) Load(c *Connection) error {
-	var vdi xenAPI.VDIRef
+	var vdi xenapi.VDIRef
 
 	hasVDIName := false
 	hasVDIUUID := false
@@ -448,7 +448,7 @@ func (this *VDIDescriptor) Query(c *Connection) error {
 }
 
 /*func (this *VBDDescriptor) Load(c *Connection) error {
-	var vbd xenAPI.VBDRef
+	var vbd xenapi.VBDRef
 
 	if this.UUID != "" {
 		_vbd, err := c.client.VBD.GetByUUID(c.session, this.UUID)
@@ -541,7 +541,7 @@ func (this *VBDDescriptor) Commit(c *Connection) (err error) {
 }
 
 func (this *PIFDescriptor) Load(c *Connection) error {
-	var pif xenAPI.PIFRef
+	var pif xenapi.PIFRef
 
 	if this.UUID != "" {
 		_vbd, err := c.client.PIF.GetByUUID(c.session, this.UUID)
@@ -570,7 +570,7 @@ func (this *PIFDescriptor) Query(c *Connection) error {
 }
 
 func (this *VLANDescriptor) Load(c *Connection) error {
-	var vlan xenAPI.VLANRef
+	var vlan xenapi.VLANRef
 
 	if this.UUID != "" {
 		_vbd, err := c.client.VLAN.GetByUUID(c.session, this.UUID)

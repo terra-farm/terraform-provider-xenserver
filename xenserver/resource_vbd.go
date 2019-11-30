@@ -26,7 +26,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/terra-farm/go-xen-api-client"
+	xenapi "github.com/terra-farm/go-xen-api-client"
 )
 
 const (
@@ -39,7 +39,7 @@ const (
 
 func queryTemplateVBDs(c *Connection, vm *VMDescriptor) (vbds []*VBDDescriptor, err error) {
 	vbds = make([]*VBDDescriptor, 0)
-	var vmVBDRefs []xenAPI.VBDRef
+	var vmVBDRefs []xenapi.VBDRef
 	if vmVBDRefs, err = c.client.VM.GetVBDs(c.session, vm.VMRef); err != nil {
 		return
 	}
@@ -64,8 +64,8 @@ func queryTemplateVBDs(c *Connection, vm *VMDescriptor) (vbds []*VBDDescriptor, 
 	return vbds, nil
 }
 
-func readTemplateVBDsToSchema(c *Connection, vm *VMDescriptor, s []interface{}, vbdType xenAPI.VbdType) error {
-	var vmVBDRefs []xenAPI.VBDRef
+func readTemplateVBDsToSchema(c *Connection, vm *VMDescriptor, s []interface{}, vbdType xenapi.VbdType) error {
+	var vmVBDRefs []xenapi.VBDRef
 	var err error
 	if vmVBDRefs, err = c.client.VM.GetVBDs(c.session, vm.VMRef); err != nil {
 		return err
@@ -124,7 +124,7 @@ func destroyTemplateVDIs(c *Connection, vbds []*VBDDescriptor) (err error) {
 	for _, vbd := range vbds {
 
 		// Only relevant to HDDs
-		if vbd.Type != xenAPI.VbdTypeDisk {
+		if vbd.Type != xenapi.VbdTypeDisk {
 			continue
 		}
 
@@ -153,13 +153,13 @@ func readVBDFromSchema(c *Connection, s map[string]interface{}) (*VBDDescriptor,
 	}
 	bootable := s[vbdSchemaBootable].(bool)
 
-	var mode xenAPI.VbdMode
+	var mode xenapi.VbdMode
 	_mode := strings.ToLower(s[vbdSchemaMode].(string))
 
-	if _mode == strings.ToLower(string(xenAPI.VbdModeRO)) {
-		mode = xenAPI.VbdModeRO
-	} else if _mode == strings.ToLower(string(xenAPI.VbdModeRW)) {
-		mode = xenAPI.VbdModeRW
+	if _mode == strings.ToLower(string(xenapi.VbdModeRO)) {
+		mode = xenapi.VbdModeRO
+	} else if _mode == strings.ToLower(string(xenapi.VbdModeRW)) {
+		mode = xenapi.VbdModeRW
 	} else {
 		return nil, fmt.Errorf("%q is not valid mode (either RO or RW)", s[vbdSchemaMode].(string))
 	}
@@ -230,10 +230,10 @@ func readVBDs(c *Connection, vm *VMDescriptor) ([]map[string]interface{}, []map[
 		log.Println("[DEBUG] VBD Type: ", vbd.Type)
 
 		switch vbd.Type {
-		case xenAPI.VbdTypeCD:
+		case xenapi.VbdTypeCD:
 			cdrom = append(cdrom, vbdData)
 			break
-		case xenAPI.VbdTypeDisk:
+		case xenapi.VbdTypeDisk:
 			hdd = append(hdd, vbdData)
 		default:
 			return nil, nil, fmt.Errorf("Unsupported VBD type %q", string(vbd.Type))
@@ -270,7 +270,7 @@ func setSchemaVBDs(c *Connection, vm *VMDescriptor, d *schema.ResourceData) erro
 func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 	log.Println(fmt.Sprintf("[DEBUG] Creating VBD for VM %q", vbd.VM.Name))
 
-	vbdObject := xenAPI.VBDRecord{
+	vbdObject := xenapi.VBDRecord{
 		Type:       vbd.Type,
 		Mode:       vbd.Mode,
 		Bootable:   vbd.Bootable,
@@ -308,7 +308,7 @@ func createVBD(c *Connection, vbd *VBDDescriptor) (*VBDDescriptor, error) {
 
 	log.Println(fmt.Sprintf("[DEBUG] VBD  UUID %q", vbd.UUID))
 
-	if vbd.VM.PowerState == xenAPI.VMPowerStateRunning {
+	if vbd.VM.PowerState == xenapi.VMPowerStateRunning {
 		err = c.client.VBD.Plug(c.session, vbdRef)
 		if err != nil {
 			return nil, err
@@ -357,7 +357,7 @@ func vbdHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func createVBDs(c *Connection, s []interface{}, vbdType xenAPI.VbdType, vm *VMDescriptor) (err error) {
+func createVBDs(c *Connection, s []interface{}, vbdType xenapi.VbdType, vm *VMDescriptor) (err error) {
 
 	if err := readTemplateVBDsToSchema(c, vm, s, vbdType); err != nil {
 		return err
@@ -386,8 +386,8 @@ func createVBDs(c *Connection, s []interface{}, vbdType xenAPI.VbdType, vm *VMDe
 		vbd.Type = vbdType
 		vbd.VM = vm
 
-		if vbdType == xenAPI.VbdTypeCD {
-			vbd.Mode = xenAPI.VbdModeRO
+		if vbdType == xenapi.VbdTypeCD {
+			vbd.Mode = xenapi.VbdModeRO
 		}
 
 		if vbd, err = createVBD(c, vbd); err != nil {

@@ -22,7 +22,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/terra-farm/go-xen-api-client"
+	xenapi "github.com/terra-farm/go-xen-api-client"
 )
 
 const (
@@ -87,13 +87,13 @@ func resourceVDICreate(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	vdiRecord := xenAPI.VDIRecord{
+	vdiRecord := xenapi.VDIRecord{
 		NameLabel:   d.Get(vdiSchemaName).(string),
 		VirtualSize: d.Get(vdiSchemaSize).(int),
 		Sharable:    d.Get(vdiSchemaShared).(bool),
 		ReadOnly:    d.Get(vdiSchemaRO).(bool),
 		SR:          sr.SRRef,
-		Type:        xenAPI.VdiTypeUser,
+		Type:        xenapi.VdiTypeUser,
 	}
 
 	log.Println("Object to send: ", vdiRecord)
@@ -224,8 +224,8 @@ func resourceVDIExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	}
 
 	if err := vdi.Load(c); err != nil {
-		if xenErr, ok := err.(*xenAPI.Error); ok {
-			if xenErr.Code() == xenAPI.ERR_UUID_INVALID {
+		if xenErr, ok := err.(*xenapi.Error); ok {
+			if xenErr.Code() == xenapi.ERR_UUID_INVALID {
 				return false, nil
 			}
 		}
