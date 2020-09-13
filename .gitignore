@@ -1,3 +1,4 @@
 vendor/
 dist/
 terraform-provider-xenserver
+.vscode/
