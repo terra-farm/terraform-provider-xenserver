@@ -21,7 +21,7 @@ package xenserver
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	xenapi "github.com/terra-farm/go-xen-api-client"
 )
 
