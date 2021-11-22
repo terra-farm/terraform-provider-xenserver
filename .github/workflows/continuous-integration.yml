@@ -15,10 +15,10 @@ jobs:
           - windows-latest
           - macOS-latest
         go:
-          - "1.13"
-          - "1.14"
+          - "1.16"
+          - "1.17"
     steps:
-      - name: Set up Go
+      - name: Set up Go ${{ matrix.go }}
         uses: actions/setup-go@v1
         with:
           go-version: ${{ matrix.go }}
