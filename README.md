@@ -4,6 +4,8 @@
 
 # Terraform provider for XenServer
 
+> This repository has been forked by the XenServer organisation as of June 2023, where it will be updated and maintained. Please make your contributions there. [Go to XenServer →](https://github.com/xenserver/terraform-provider-xenserver)
+
 NOTE: This has been updated to work with Terraform v.0.12.x
 
 Website: [Xenserver Provider](https://terra-farm.github.io/provider-xenserver/)
